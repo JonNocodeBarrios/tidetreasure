@@ -57,18 +57,11 @@ export default function CheckoutPage() {
       }
 
       if (order) {
-        // Store order ID in localStorage as backup
-        localStorage.setItem(
-          "tidetreasures-last-order",
-          JSON.stringify({
-            orderId: order.id,
-            timestamp: Date.now(),
-            total: getTotalPrice(),
-          }),
-        )
-
         // Clear the cart
         clearCart()
+
+        // Store the order ID in localStorage as backup
+        localStorage.setItem("lastOrderId", order.id)
 
         // Redirect to confirmation page with order ID
         router.push(`/order-confirmed?orderId=${order.id}`)
