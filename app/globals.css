@@ -23,18 +23,17 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    /* Custom luxury ocean theme colors */
-    --ocean-deep: 210 100% 15%;
-    --ocean-medium: 210 85% 25%;
-    --ocean-light: 210 70% 45%;
-    --ocean-mist: 210 30% 85%;
-    --cream-light: 45 25% 95%;
-    --cream-medium: 45 20% 90%;
-    --pearl-white: 0 0% 98%;
+    /* Luxury Brand Colors */
+    --navy-deep: 28 20% 20%;
+    --navy-medium: 28 25% 25%;
+    --navy-light: 28 30% 35%;
     --gold-accent: 45 90% 60%;
-    --coral-accent: 15 85% 65%;
+    --coral-soft: 15 85% 65%;
+    --pearl-white: 0 0% 98%;
+    --cream-light: 45 25% 95%;
+    --ocean-mist: 210 30% 85%;
   }
 
   .dark {
@@ -65,16 +64,16 @@
     @apply border-border;
   }
   body {
-    @apply bg-gradient-to-br from-slate-50 via-blue-50/30 to-cyan-50/20 text-foreground font-light;
+    @apply bg-stone-50 text-foreground font-light;
     min-height: 100vh;
   }
 }
 
-/* Custom luxury animations */
+/* Luxury Brand Animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(40px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
@@ -82,21 +81,10 @@
   }
 }
 
-@keyframes slideInFromLeft {
+@keyframes slideInLeft {
   from {
     opacity: 0;
-    transform: translateX(-40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInFromRight {
-  from {
-    opacity: 0;
-    transform: translateX(40px);
+    transform: translateX(-30px);
   }
   to {
     opacity: 1;
@@ -107,7 +95,7 @@
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
@@ -130,85 +118,82 @@
     transform: translateY(0px);
   }
   50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes ripple {
-  0% {
-    transform: scale(0);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(4);
-    opacity: 0;
+    transform: translateY(-8px);
   }
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.8s ease-out;
+  animation: fadeInUp 0.6s ease-out;
 }
 
 .animate-slide-in-left {
-  animation: slideInFromLeft 0.6s ease-out;
-}
-
-.animate-slide-in-right {
-  animation: slideInFromRight 0.6s ease-out;
+  animation: slideInLeft 0.5s ease-out;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.5s ease-out;
+  animation: scaleIn 0.4s ease-out;
 }
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
 
-/* Luxury UI Components */
+/* Luxury Component Styles */
 .luxury-card {
-  @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl shadow-blue-900/10 rounded-2xl transition-all duration-500;
+  @apply bg-white rounded-2xl shadow-lg shadow-stone-900/5 border border-stone-100 transition-all duration-300;
 }
 
 .luxury-card:hover {
-  @apply shadow-2xl shadow-blue-900/20 transform -translate-y-2;
+  @apply shadow-xl shadow-stone-900/10 -translate-y-1;
 }
 
-.luxury-button {
-  @apply bg-gradient-to-r from-blue-900 via-blue-800 to-cyan-700 hover:from-blue-800 hover:via-blue-700 hover:to-cyan-600 text-white font-medium px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1;
+.luxury-button-primary {
+  @apply bg-stone-900 hover:bg-stone-800 text-white font-medium px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5;
 }
 
 .luxury-button-secondary {
-  @apply bg-white/90 hover:bg-white text-blue-900 border-2 border-blue-200 hover:border-blue-300 font-medium px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1;
+  @apply bg-white hover:bg-stone-50 text-stone-900 border-2 border-stone-200 hover:border-stone-300 font-medium px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5;
+}
+
+.luxury-button-gold {
+  @apply bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-700 hover:to-yellow-600 text-white font-medium px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5;
 }
 
 .luxury-input {
-  @apply bg-white/80 backdrop-blur-sm border-2 border-blue-100 focus:border-blue-300 rounded-xl px-4 py-3 transition-all duration-300 focus:shadow-lg focus:shadow-blue-900/10;
+  @apply bg-white border-2 border-stone-200 focus:border-stone-400 rounded-2xl px-4 py-3 transition-all duration-300 focus:shadow-lg focus:shadow-stone-900/5;
 }
 
-.luxury-gradient-text {
-  @apply bg-gradient-to-r from-blue-900 via-cyan-700 to-blue-800 bg-clip-text text-transparent;
+.luxury-badge {
+  @apply px-3 py-1 rounded-full text-xs font-medium;
 }
 
-.luxury-section {
-  @apply py-20 px-4;
+.luxury-badge-success {
+  @apply bg-emerald-100 text-emerald-800;
 }
 
-.luxury-container {
-  @apply max-w-7xl mx-auto;
+.luxury-badge-warning {
+  @apply bg-amber-100 text-amber-800;
 }
 
-/* Product image handling */
+.luxury-badge-error {
+  @apply bg-red-100 text-red-800;
+}
+
+.luxury-badge-info {
+  @apply bg-blue-100 text-blue-800;
+}
+
+/* Product Image Styles */
 .product-image-container {
-  @apply relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 shadow-lg;
+  @apply relative overflow-hidden rounded-2xl bg-stone-100 shadow-md;
 }
 
 .product-image {
-  @apply w-full h-full object-cover transition-transform duration-700 hover:scale-110;
+  @apply w-full h-full object-cover transition-transform duration-500 hover:scale-105;
 }
 
 .product-image-placeholder {
-  @apply w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 via-cyan-50 to-blue-50;
+  @apply w-full h-full flex items-center justify-center bg-gradient-to-br from-stone-100 to-stone-200;
 }
 
 .product-image-overlay {
@@ -219,45 +204,28 @@
   @apply opacity-100;
 }
 
-/* Shimmer loading effect */
-.shimmer {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+/* Navigation Styles */
+.nav-link {
+  @apply text-stone-700 hover:text-stone-900 font-medium transition-colors duration-200 relative;
+}
+
+.nav-link.active {
+  @apply text-stone-900;
+}
+
+.nav-link.active::after {
+  content: "";
+  @apply absolute -bottom-1 left-0 right-0 h-0.5 bg-stone-900 rounded-full;
+}
+
+/* Loading States */
+.loading-skeleton {
+  @apply bg-gradient-to-r from-stone-200 via-stone-100 to-stone-200;
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
-/* Glassmorphism effects */
-.glass-card {
-  @apply bg-white/30 backdrop-blur-md border border-white/20 shadow-xl;
-}
-
-.glass-nav {
-  @apply bg-white/95 backdrop-blur-lg border-b border-white/20 shadow-lg;
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-blue-50;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-blue-300 rounded-full;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-blue-400;
-}
-
-/* Responsive utilities */
+/* Responsive Utilities */
 .mobile-padding {
   @apply px-4 sm:px-6 lg:px-8;
 }
@@ -266,88 +234,75 @@ html {
   @apply py-12 sm:py-16 lg:py-20;
 }
 
-/* Button ripple effect */
-.ripple-button {
-  @apply relative overflow-hidden;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-.ripple-button::before {
-  content: "";
-  @apply absolute top-1/2 left-1/2 w-0 h-0 rounded-full bg-white/30 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-500;
+::-webkit-scrollbar-track {
+  @apply bg-stone-100;
 }
 
-.ripple-button:active::before {
-  @apply w-80 h-80;
+::-webkit-scrollbar-thumb {
+  @apply bg-stone-300 rounded-full;
 }
 
-/* Focus states for accessibility */
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-stone-400;
+}
+
+/* Focus States */
 .focus-luxury {
-  @apply focus:outline-none focus:ring-4 focus:ring-blue-300/50 focus:ring-offset-2 focus:ring-offset-white;
+  @apply focus:outline-none focus:ring-4 focus:ring-stone-300/50 focus:ring-offset-2 focus:ring-offset-white;
 }
 
-/* Hover states */
-.hover-lift {
-  @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue-900/20;
+/* Text Hierarchy */
+.heading-primary {
+  @apply text-4xl sm:text-5xl lg:text-6xl font-light text-stone-900 leading-tight;
 }
 
-.hover-glow {
-  @apply transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/50;
+.heading-secondary {
+  @apply text-2xl sm:text-3xl lg:text-4xl font-light text-stone-900 leading-tight;
 }
 
-/* Text styles */
-.heading-luxury {
-  @apply font-light text-4xl sm:text-5xl lg:text-6xl leading-tight;
+.heading-tertiary {
+  @apply text-xl sm:text-2xl font-medium text-stone-900;
 }
 
-.subheading-luxury {
-  @apply font-light text-xl sm:text-2xl text-blue-800/80 leading-relaxed;
+.subheading {
+  @apply text-lg sm:text-xl text-stone-600 leading-relaxed;
 }
 
-.body-luxury {
-  @apply text-gray-700 leading-relaxed;
+.body-text {
+  @apply text-stone-700 leading-relaxed;
 }
 
-/* Status indicators */
-.status-success {
-  @apply bg-emerald-100 text-emerald-800 border border-emerald-200;
+.caption {
+  @apply text-sm text-stone-500;
 }
 
-.status-warning {
-  @apply bg-amber-100 text-amber-800 border border-amber-200;
-}
-
-.status-error {
-  @apply bg-red-100 text-red-800 border border-red-200;
-}
-
-.status-info {
-  @apply bg-blue-100 text-blue-800 border border-blue-200;
-}
-
-/* Loading states */
-.loading-skeleton {
-  @apply bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100;
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-/* Mobile-first responsive breakpoints */
+/* Mobile Responsive */
 @media (max-width: 640px) {
   .luxury-card {
     @apply rounded-xl;
   }
 
-  .luxury-button,
-  .luxury-button-secondary {
-    @apply px-6 py-3 text-sm;
+  .luxury-button-primary,
+  .luxury-button-secondary,
+  .luxury-button-gold {
+    @apply px-4 py-2.5 text-sm;
   }
 
-  .heading-luxury {
+  .heading-primary {
     @apply text-3xl;
+  }
+
+  .heading-secondary {
+    @apply text-2xl;
   }
 }
 
-/* Print styles */
+/* Print Styles */
 @media print {
   .no-print {
     display: none !important;

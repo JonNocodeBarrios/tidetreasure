@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Search, Heart, ShoppingBag, User, Sun, Moon, Menu, X, Shield, Waves } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { Search, Heart, ShoppingBag, User, Menu, X, Shield, Waves } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 import { useCart } from "@/contexts/cart-context"
@@ -12,10 +13,10 @@ import { cn } from "@/lib/utils"
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
-  const [isDark, setIsDark] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const { user } = useAuth()
   const { getTotalItems } = useCart()
+  const pathname = usePathname()
 
   // Handle scroll effect
   useEffect(() => {
@@ -40,12 +41,8 @@ export function Navigation() {
     checkAdmin()
   }, [user])
 
-  const toggleTheme = () => {
-    setIsDark(!isDark)
-  }
-
   const navItems = [
-    { href: "/", label: "HOME", active: true },
+    { href: "/", label: "HOME" },
     { href: "/products", label: "CATALOG", hasDropdown: true },
     { href: "/about", label: "ABOUT" },
     { href: "/contact", label: "CONTACT" },
@@ -59,24 +56,29 @@ export function Navigation() {
     { href: "/products/ring", label: "Rings" },
   ]
 
+  const isActiveLink = (href: string) => {
+    if (href === "/") return pathname === "/"
+    return pathname.startsWith(href)
+  }
+
   return (
     <nav
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
-        isScrolled ? "glass-nav shadow-xl shadow-blue-900/10" : "bg-white/80 backdrop-blur-sm border-b border-white/20",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        isScrolled ? "bg-white/95 backdrop-blur-lg shadow-lg shadow-stone-900/5" : "bg-white/80 backdrop-blur-sm",
       )}
     >
-      <div className="luxury-container mobile-padding">
+      <div className="max-w-7xl mx-auto mobile-padding">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 group">
             <div className="relative">
-              <Waves className="w-8 h-8 text-blue-900 group-hover:text-cyan-600 transition-colors duration-300" />
-              <div className="absolute inset-0 bg-blue-400 rounded-full blur-lg opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
+              <Waves className="w-8 h-8 text-stone-900 group-hover:text-yellow-600 transition-colors duration-300" />
+              <div className="absolute inset-0 bg-yellow-400 rounded-full blur-lg opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
             </div>
             <span className="text-2xl font-light tracking-wide">
-              <span className="luxury-gradient-text font-medium">TIDE</span>
-              <span className="text-blue-900 ml-1">TREASURES</span>
+              <span className="text-stone-900 font-medium">TIDE</span>
+              <span className="text-yellow-600 ml-1">TREASURES</span>
             </span>
           </Link>
 
@@ -86,10 +88,7 @@ export function Navigation() {
               <div key={item.href} className="relative group">
                 <Link
                   href={item.href}
-                  className={cn(
-                    "text-sm font-medium tracking-wide transition-all duration-300 py-2 px-1",
-                    item.active ? "text-blue-900 border-b-2 border-blue-900" : "text-gray-700 hover:text-blue-900",
-                  )}
+                  className={cn("nav-link text-sm tracking-wide py-2 px-1", isActiveLink(item.href) && "active")}
                 >
                   {item.label}
                   {item.hasDropdown && (
@@ -111,7 +110,7 @@ export function Navigation() {
                         <Link
                           key={category.href}
                           href={category.href}
-                          className="block px-4 py-3 text-gray-700 hover:text-blue-900 hover:bg-blue-50 rounded-xl transition-all duration-200 font-medium"
+                          className="block px-4 py-3 text-stone-700 hover:text-stone-900 hover:bg-stone-50 rounded-xl transition-all duration-200 font-medium"
                           onClick={() => setIsMenuOpen(false)}
                         >
                           {category.label}
@@ -129,7 +128,7 @@ export function Navigation() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-gray-700 hover:text-blue-900 hover:bg-blue-50 rounded-xl p-3 focus-luxury"
+              className="text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded-2xl p-3 focus-luxury"
             >
               <Search className="w-5 h-5" />
             </Button>
@@ -137,7 +136,7 @@ export function Navigation() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-gray-700 hover:text-blue-900 hover:bg-blue-50 rounded-xl p-3 focus-luxury"
+              className="text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded-2xl p-3 focus-luxury"
             >
               <Heart className="w-5 h-5" />
             </Button>
@@ -146,11 +145,11 @@ export function Navigation() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-gray-700 hover:text-blue-900 hover:bg-blue-50 rounded-xl p-3 focus-luxury"
+                className="text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded-2xl p-3 focus-luxury"
               >
                 <ShoppingBag className="w-5 h-5" />
                 {getTotalItems() > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gradient-to-r from-coral-accent to-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg animate-scale-in">
+                  <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg animate-scale-in">
                     {getTotalItems()}
                   </span>
                 )}
@@ -164,7 +163,7 @@ export function Navigation() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-gray-700 hover:text-blue-900 hover:bg-blue-50 rounded-xl p-3 focus-luxury"
+                      className="text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded-2xl p-3 focus-luxury"
                     >
                       <Shield className="w-5 h-5" />
                     </Button>
@@ -174,7 +173,7 @@ export function Navigation() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-gray-700 hover:text-blue-900 hover:bg-blue-50 rounded-xl p-3 focus-luxury"
+                    className="text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded-2xl p-3 focus-luxury"
                   >
                     <User className="w-5 h-5" />
                   </Button>
@@ -186,20 +185,11 @@ export function Navigation() {
               </Link>
             )}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleTheme}
-              className="text-gray-700 hover:text-blue-900 hover:bg-blue-50 rounded-xl p-3 focus-luxury"
-            >
-              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </Button>
-
             {/* Mobile menu button */}
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden text-gray-700 hover:text-blue-900 hover:bg-blue-50 rounded-xl p-3 focus-luxury"
+              className="lg:hidden text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded-2xl p-3 focus-luxury"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -209,15 +199,17 @@ export function Navigation() {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="lg:hidden py-6 border-t border-blue-100 animate-fade-in-up">
+          <div className="lg:hidden py-6 border-t border-stone-200 animate-fade-in-up">
             <div className="flex flex-col space-y-4">
               {navItems.map((item) => (
                 <div key={item.href}>
                   <Link
                     href={item.href}
                     className={cn(
-                      "block py-3 px-4 rounded-xl font-medium transition-all duration-200",
-                      item.active ? "text-blue-900 bg-blue-50" : "text-gray-700 hover:text-blue-900 hover:bg-blue-50",
+                      "block py-3 px-4 rounded-2xl font-medium transition-all duration-200",
+                      isActiveLink(item.href)
+                        ? "text-stone-900 bg-stone-100"
+                        : "text-stone-700 hover:text-stone-900 hover:bg-stone-50",
                     )}
                     onClick={() => setIsMenuOpen(false)}
                   >
@@ -230,7 +222,7 @@ export function Navigation() {
                         <Link
                           key={category.href}
                           href={category.href}
-                          className="block py-2 px-4 text-gray-600 hover:text-blue-900 hover:bg-blue-25 rounded-lg transition-all duration-200"
+                          className="block py-2 px-4 text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-xl transition-all duration-200"
                           onClick={() => setIsMenuOpen(false)}
                         >
                           {category.label}
@@ -244,7 +236,7 @@ export function Navigation() {
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className="flex items-center py-3 px-4 text-gray-700 hover:text-blue-900 hover:bg-blue-50 rounded-xl font-medium transition-all duration-200"
+                  className="flex items-center py-3 px-4 text-stone-700 hover:text-stone-900 hover:bg-stone-50 rounded-2xl font-medium transition-all duration-200"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <Shield className="w-4 h-4 mr-3" />

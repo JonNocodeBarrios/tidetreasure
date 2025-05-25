@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { Package } from "lucide-react"
 
 interface ProductImageProps {
   src?: string | null
@@ -27,14 +28,14 @@ export function ProductImage({
   // Generate luxury ocean-themed placeholder based on product name
   const getPlaceholderImage = (productName: string) => {
     const themes = [
-      "luxury+ocean+jewelry+pearl+background",
-      "elegant+seashell+luxury+jewelry",
-      "ocean+waves+luxury+jewelry+background",
+      "luxury+ocean+jewelry+pearl+elegant",
+      "seashell+luxury+jewelry+gold+accents",
+      "ocean+waves+luxury+jewelry+blue",
+      "coral+reef+luxury+jewelry+warm",
+      "nautical+luxury+jewelry+sophisticated",
+      "sea+foam+luxury+jewelry+minimal",
+      "ocean+depth+luxury+jewelry+dark",
       "pearl+luxury+jewelry+soft+lighting",
-      "coral+reef+luxury+jewelry+background",
-      "ocean+depth+luxury+jewelry+blue",
-      "sea+foam+luxury+jewelry+elegant",
-      "nautical+luxury+jewelry+gold+accents",
     ]
 
     // Use product name to consistently select the same theme
@@ -58,8 +59,8 @@ export function ProductImage({
       <div
         className={cn(
           "product-image-placeholder",
-          "flex items-center justify-center",
-          "bg-gradient-to-br from-blue-50 via-cyan-25 to-blue-25",
+          "flex flex-col items-center justify-center",
+          "bg-gradient-to-br from-stone-100 to-stone-200",
           "relative overflow-hidden",
           fallbackClassName,
           className,
@@ -71,7 +72,10 @@ export function ProductImage({
           className="w-full h-full object-cover opacity-90"
           loading={priority ? "eager" : "lazy"}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-blue-900/10 via-transparent to-cyan-900/5" />
+        <div className="absolute inset-0 bg-gradient-to-t from-stone-900/10 via-transparent to-transparent" />
+        <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2">
+          <Package className="w-4 h-4 text-stone-600" />
+        </div>
       </div>
     )
   }
@@ -80,7 +84,7 @@ export function ProductImage({
     <div className={cn("product-image-container relative", className)}>
       {imageLoading && (
         <div className={cn("absolute inset-0 loading-skeleton rounded-2xl", "flex items-center justify-center")}>
-          <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-stone-200 border-t-stone-600 rounded-full animate-spin" />
         </div>
       )}
 
