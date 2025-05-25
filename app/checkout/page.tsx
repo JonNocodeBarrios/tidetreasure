@@ -57,11 +57,12 @@ export default function CheckoutPage() {
       }
 
       if (order) {
+        // Store order ID in localStorage for fallback
+        localStorage.setItem("lastOrderId", order.id)
+        localStorage.setItem("lastOrderTimestamp", Date.now().toString())
+
         // Clear the cart
         clearCart()
-
-        // Store the order ID in localStorage as backup
-        localStorage.setItem("lastOrderId", order.id)
 
         // Redirect to confirmation page with order ID
         router.push(`/order-confirmed?orderId=${order.id}`)

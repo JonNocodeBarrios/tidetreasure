@@ -20,7 +20,6 @@ export default function OrderConfirmedPage() {
 
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
-  const [missingOrder, setMissingOrder] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -33,31 +32,39 @@ export default function OrderConfirmedPage() {
     // If no orderId in URL, try to get from localStorage
     if (!orderIdToFetch) {
       const lastOrderId = localStorage.getItem("lastOrderId")
-      if (lastOrderId) {
-        orderIdToFetch = lastOrderId
-        // Update URL to include the order ID
-        router.replace(`/order-confirmed?orderId=${lastOrderId}`)
-      } else {
-        // No order ID available, show missing order state
-        setMissingOrder(true)
-        setLoading(false)
-        return
+      const lastOrderTimestamp = localStorage.getItem("lastOrderTimestamp")
+
+      // Only use localStorage order if it's recent (within last 10 minutes)
+      if (lastOrderId && lastOrderTimestamp) {
+        const timeDiff = Date.now() - Number.parseInt(lastOrderTimestamp)
+        const tenMinutes = 10 * 60 * 1000
+
+        if (timeDiff < tenMinutes) {
+          orderIdToFetch = lastOrderId
+          // Update URL to include order ID
+          router.replace(`/order-confirmed?orderId=${lastOrderId}`)
+        }
       }
+    }
+
+    if (!orderIdToFetch) {
+      // No recent order found, redirect to products
+      router.push("/products")
+      return
     }
 
     const fetchOrder = async () => {
       try {
         const orderData = await getOrderById(orderIdToFetch!)
-        if (orderData) {
-          setOrder(orderData)
-          // Clear the localStorage backup after successful fetch
-          localStorage.removeItem("lastOrderId")
-        } else {
-          setMissingOrder(true)
-        }
+        setOrder(orderData)
+
+        // Clear localStorage after successful fetch
+        localStorage.removeItem("lastOrderId")
+        localStorage.removeItem("lastOrderTimestamp")
       } catch (error) {
         console.error("Error fetching order:", error)
-        setMissingOrder(true)
+        // If order fetch fails, redirect to products
+        router.push("/products")
       } finally {
         setLoading(false)
       }
@@ -67,40 +74,6 @@ export default function OrderConfirmedPage() {
       fetchOrder()
     }
   }, [user, authLoading, orderId, router])
-
-  // Handle missing order case
-  if (missingOrder) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navigation />
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-6">
-              <Package className="w-8 h-8 text-orange-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">No Recent Order Found</h1>
-            <p className="text-gray-600 mb-8">
-              We couldn't find a recent order to display. This might happen if you accessed this page directly or if
-              your session expired.
-            </p>
-            <div className="space-y-4">
-              <Link href="/products">
-                <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 px-8 py-3 rounded-full">
-                  Continue Shopping
-                </Button>
-              </Link>
-              <div>
-                <Link href="/account">
-                  <Button variant="outline">View Order History</Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    )
-  }
 
   if (authLoading || loading) {
     return (
@@ -113,18 +86,35 @@ export default function OrderConfirmedPage() {
     )
   }
 
-  if (!user || !order) {
+  if (!user || (!order && !loading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Not Found</h2>
-            <p className="text-gray-600 mb-6">We couldn't find the order you're looking for.</p>
-            <Link href="/">
-              <Button>Return to Home</Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="container mx-auto px-4 py-20">
+          <div className="max-w-md mx-auto text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ShoppingBag className="w-8 h-8 text-gray-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">No Recent Order Found</h2>
+            <p className="text-gray-600 mb-8">
+              We couldn't find a recent order to display. This might happen if you accessed this page directly or after
+              a long period of time.
+            </p>
+            <div className="space-y-4">
+              <Link href="/products">
+                <Button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700">
+                  Continue Shopping
+                </Button>
+              </Link>
+              <Link href="/account">
+                <Button variant="outline" className="w-full">
+                  View Order History
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+        <Footer />
       </div>
     )
   }
@@ -139,15 +129,17 @@ export default function OrderConfirmedPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Success Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 animate-fade-in-up">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">Thank You for Your Order!</h1>
-            <p className="text-xl text-gray-600 mb-2">Your order has been successfully placed and confirmed.</p>
-            <p className="text-gray-600">
-              We've received your order and will begin processing it shortly. You'll receive email updates as your order
-              progresses.
+            <p className="text-xl text-gray-600 mb-2">
+              Your order has been successfully placed and is being processed.
+            </p>
+            <p className="text-lg text-gray-500">
+              Order #{order.id.slice(0, 8).toUpperCase()} • ${Number(order.total).toFixed(2)} •{" "}
+              {new Date(order.created_at).toLocaleDateString()}
             </p>
           </div>
 
