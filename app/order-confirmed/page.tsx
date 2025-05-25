@@ -22,56 +22,52 @@ export default function OrderConfirmedPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/login")
-      return
-    }
-
-    let orderIdToFetch = orderId
-
-    // If no orderId in URL, try to get from localStorage
-    if (!orderIdToFetch) {
-      const lastOrderId = localStorage.getItem("lastOrderId")
-      const lastOrderTimestamp = localStorage.getItem("lastOrderTimestamp")
-
-      // Only use localStorage order if it's recent (within last 10 minutes)
-      if (lastOrderId && lastOrderTimestamp) {
-        const timeDiff = Date.now() - Number.parseInt(lastOrderTimestamp)
-        const tenMinutes = 10 * 60 * 1000
-
-        if (timeDiff < tenMinutes) {
-          orderIdToFetch = lastOrderId
-          // Update URL to include order ID
-          router.replace(`/order-confirmed?orderId=${lastOrderId}`)
-        }
+    const handleOrderConfirmation = async () => {
+      if (!authLoading && !user) {
+        router.push("/login")
+        return
       }
-    }
 
-    if (!orderIdToFetch) {
-      // No recent order found, redirect to products
-      router.push("/products")
-      return
-    }
+      // Get order ID from URL params or localStorage
+      const orderIdToFetch = orderId || localStorage.getItem("lastOrderId")
 
-    const fetchOrder = async () => {
+      if (!orderIdToFetch) {
+        // No order ID available, redirect to products
+        router.push("/products")
+        return
+      }
+
       try {
-        const orderData = await getOrderById(orderIdToFetch!)
+        const orderData = await getOrderById(orderIdToFetch)
+
+        if (!orderData) {
+          // Order not found or not accessible, redirect to products
+          router.push("/products")
+          return
+        }
+
+        // Verify this order belongs to the current user
+        if (orderData.user_id !== user?.id) {
+          router.push("/products")
+          return
+        }
+
         setOrder(orderData)
 
-        // Clear localStorage after successful fetch
-        localStorage.removeItem("lastOrderId")
-        localStorage.removeItem("lastOrderTimestamp")
+        // Clear the stored order ID since we've successfully displayed it
+        if (localStorage.getItem("lastOrderId") === orderIdToFetch) {
+          localStorage.removeItem("lastOrderId")
+        }
       } catch (error) {
         console.error("Error fetching order:", error)
-        // If order fetch fails, redirect to products
         router.push("/products")
       } finally {
         setLoading(false)
       }
     }
 
-    if (orderIdToFetch) {
-      fetchOrder()
+    if (user) {
+      handleOrderConfirmation()
     }
   }, [user, authLoading, orderId, router])
 
@@ -86,33 +82,32 @@ export default function OrderConfirmedPage() {
     )
   }
 
-  if (!user || (!order && !loading)) {
+  if (!user || !order) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />
         <div className="container mx-auto px-4 py-20">
-          <div className="max-w-md mx-auto text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <ShoppingBag className="w-8 h-8 text-gray-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">No Recent Order Found</h2>
-            <p className="text-gray-600 mb-8">
-              We couldn't find a recent order to display. This might happen if you accessed this page directly or after
-              a long period of time.
-            </p>
-            <div className="space-y-4">
-              <Link href="/products">
-                <Button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700">
-                  Continue Shopping
-                </Button>
-              </Link>
-              <Link href="/account">
-                <Button variant="outline" className="w-full">
-                  View Order History
-                </Button>
-              </Link>
-            </div>
-          </div>
+          <Card className="w-full max-w-md mx-auto">
+            <CardContent className="p-8 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Package className="w-8 h-8 text-gray-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">No Recent Order Found</h2>
+              <p className="text-gray-600 mb-6">
+                We couldn't find a recent order to display. This page is only accessible after placing an order.
+              </p>
+              <div className="space-y-3">
+                <Link href="/products">
+                  <Button className="w-full">Browse Products</Button>
+                </Link>
+                <Link href="/account">
+                  <Button variant="outline" className="w-full">
+                    View Order History
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
         <Footer />
       </div>
@@ -134,13 +129,26 @@ export default function OrderConfirmedPage() {
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">Thank You for Your Order!</h1>
-            <p className="text-xl text-gray-600 mb-2">
-              Your order has been successfully placed and is being processed.
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Your order has been successfully placed and is being processed. We'll send you updates as your order
+              progresses.
             </p>
-            <p className="text-lg text-gray-500">
-              Order #{order.id.slice(0, 8).toUpperCase()} • ${Number(order.total).toFixed(2)} •{" "}
-              {new Date(order.created_at).toLocaleDateString()}
-            </p>
+            <div className="mt-6 p-4 bg-green-50 rounded-lg inline-block">
+              <p className="text-green-800 font-medium">
+                Order Total: <span className="text-2xl font-bold">${orderTotal.toFixed(2)}</span>
+              </p>
+              <p className="text-green-700 text-sm mt-1">
+                Placed on{" "}
+                {new Date(order.created_at).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -57,9 +57,8 @@ export default function CheckoutPage() {
       }
 
       if (order) {
-        // Store order ID in localStorage for fallback
+        // Store order ID in localStorage for confirmation page
         localStorage.setItem("lastOrderId", order.id)
-        localStorage.setItem("lastOrderTimestamp", Date.now().toString())
 
         // Clear the cart
         clearCart()
