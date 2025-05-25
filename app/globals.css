@@ -23,7 +23,18 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Custom luxury ocean theme colors */
+    --ocean-deep: 210 100% 15%;
+    --ocean-medium: 210 85% 25%;
+    --ocean-light: 210 70% 45%;
+    --ocean-mist: 210 30% 85%;
+    --cream-light: 45 25% 95%;
+    --cream-medium: 45 20% 90%;
+    --pearl-white: 0 0% 98%;
+    --gold-accent: 45 90% 60%;
+    --coral-accent: 15 85% 65%;
   }
 
   .dark {
@@ -54,15 +65,16 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-gradient-to-br from-slate-50 via-blue-50/30 to-cyan-50/20 text-foreground font-light;
+    min-height: 100vh;
   }
 }
 
-/* Custom animations */
+/* Custom luxury animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(40px);
   }
   to {
     opacity: 1;
@@ -73,7 +85,7 @@
 @keyframes slideInFromLeft {
   from {
     opacity: 0;
-    transform: translateX(-30px);
+    transform: translateX(-40px);
   }
   to {
     opacity: 1;
@@ -81,26 +93,146 @@
   }
 }
 
-@keyframes pulse-glow {
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float {
   0%,
   100% {
-    box-shadow: 0 0 5px rgba(6, 182, 212, 0.5);
+    transform: translateY(0px);
   }
   50% {
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.8);
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
   }
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.6s ease-out;
+  animation: fadeInUp 0.8s ease-out;
 }
 
 .animate-slide-in-left {
-  animation: slideInFromLeft 0.5s ease-out;
+  animation: slideInFromLeft 0.6s ease-out;
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s infinite;
+.animate-slide-in-right {
+  animation: slideInFromRight 0.6s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Luxury UI Components */
+.luxury-card {
+  @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl shadow-blue-900/10 rounded-2xl transition-all duration-500;
+}
+
+.luxury-card:hover {
+  @apply shadow-2xl shadow-blue-900/20 transform -translate-y-2;
+}
+
+.luxury-button {
+  @apply bg-gradient-to-r from-blue-900 via-blue-800 to-cyan-700 hover:from-blue-800 hover:via-blue-700 hover:to-cyan-600 text-white font-medium px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1;
+}
+
+.luxury-button-secondary {
+  @apply bg-white/90 hover:bg-white text-blue-900 border-2 border-blue-200 hover:border-blue-300 font-medium px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1;
+}
+
+.luxury-input {
+  @apply bg-white/80 backdrop-blur-sm border-2 border-blue-100 focus:border-blue-300 rounded-xl px-4 py-3 transition-all duration-300 focus:shadow-lg focus:shadow-blue-900/10;
+}
+
+.luxury-gradient-text {
+  @apply bg-gradient-to-r from-blue-900 via-cyan-700 to-blue-800 bg-clip-text text-transparent;
+}
+
+.luxury-section {
+  @apply py-20 px-4;
+}
+
+.luxury-container {
+  @apply max-w-7xl mx-auto;
+}
+
+/* Product image handling */
+.product-image-container {
+  @apply relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 shadow-lg;
+}
+
+.product-image {
+  @apply w-full h-full object-cover transition-transform duration-700 hover:scale-110;
+}
+
+.product-image-placeholder {
+  @apply w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 via-cyan-50 to-blue-50;
+}
+
+.product-image-overlay {
+  @apply absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-300;
+}
+
+.product-image-container:hover .product-image-overlay {
+  @apply opacity-100;
+}
+
+/* Shimmer loading effect */
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Glassmorphism effects */
+.glass-card {
+  @apply bg-white/30 backdrop-blur-md border border-white/20 shadow-xl;
+}
+
+.glass-nav {
+  @apply bg-white/95 backdrop-blur-lg border-b border-white/20 shadow-lg;
 }
 
 /* Smooth scrolling */
@@ -114,79 +246,108 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  @apply bg-blue-50;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
+  @apply bg-blue-300 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  @apply bg-blue-400;
 }
 
-/* Loading skeleton */
-.skeleton {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
+/* Responsive utilities */
+.mobile-padding {
+  @apply px-4 sm:px-6 lg:px-8;
 }
 
-@keyframes loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-/* Glassmorphism effect */
-.glass {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-}
-
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Hover effects */
-.hover-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.hover-lift:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+.section-spacing {
+  @apply py-12 sm:py-16 lg:py-20;
 }
 
 /* Button ripple effect */
-.ripple {
-  position: relative;
-  overflow: hidden;
+.ripple-button {
+  @apply relative overflow-hidden;
 }
 
-.ripple::before {
+.ripple-button::before {
   content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+  @apply absolute top-1/2 left-1/2 w-0 h-0 rounded-full bg-white/30 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-500;
 }
 
-.ripple:active::before {
-  width: 300px;
-  height: 300px;
+.ripple-button:active::before {
+  @apply w-80 h-80;
+}
+
+/* Focus states for accessibility */
+.focus-luxury {
+  @apply focus:outline-none focus:ring-4 focus:ring-blue-300/50 focus:ring-offset-2 focus:ring-offset-white;
+}
+
+/* Hover states */
+.hover-lift {
+  @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue-900/20;
+}
+
+.hover-glow {
+  @apply transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/50;
+}
+
+/* Text styles */
+.heading-luxury {
+  @apply font-light text-4xl sm:text-5xl lg:text-6xl leading-tight;
+}
+
+.subheading-luxury {
+  @apply font-light text-xl sm:text-2xl text-blue-800/80 leading-relaxed;
+}
+
+.body-luxury {
+  @apply text-gray-700 leading-relaxed;
+}
+
+/* Status indicators */
+.status-success {
+  @apply bg-emerald-100 text-emerald-800 border border-emerald-200;
+}
+
+.status-warning {
+  @apply bg-amber-100 text-amber-800 border border-amber-200;
+}
+
+.status-error {
+  @apply bg-red-100 text-red-800 border border-red-200;
+}
+
+.status-info {
+  @apply bg-blue-100 text-blue-800 border border-blue-200;
+}
+
+/* Loading states */
+.loading-skeleton {
+  @apply bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100 bg-[length:200%_100%] animate-pulse;
+}
+
+/* Mobile-first responsive breakpoints */
+@media (max-width: 640px) {
+  .luxury-card {
+    @apply rounded-xl;
+  }
+
+  .luxury-button,
+  .luxury-button-secondary {
+    @apply px-6 py-3 text-sm;
+  }
+
+  .heading-luxury {
+    @apply text-3xl;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }
