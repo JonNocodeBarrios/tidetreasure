@@ -10,17 +10,21 @@ import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/contexts/auth-context"
 import { useCart } from "@/contexts/cart-context"
-import { createOrder } from "@/lib/orders"
+import { createOrder, validateOrderData } from "@/lib/orders"
+import { useToast } from "@/hooks/use-toast"
 import { Loader2, CreditCard, ShoppingCart, AlertCircle, CheckCircle } from "lucide-react"
 
 export default function CheckoutPage() {
   const { user, loading: authLoading } = useAuth()
   const { items, getTotalPrice, clearCart } = useCart()
   const router = useRouter()
+  const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState("")
   const [orderCompleted, setOrderCompleted] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
   const isProcessingOrder = useRef(false)
+  const orderSubmissionAttempted = useRef(false)
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -37,28 +41,114 @@ export default function CheckoutPage() {
     }
   }, [items, authLoading, router, orderCompleted])
 
+  // Validate cart items on component mount and when items change
+  useEffect(() => {
+    if (items.length > 0 && user) {
+      const orderData = {
+        user_id: user.id,
+        items,
+        total: getTotalPrice(),
+      }
+
+      const errors = validateOrderData(orderData)
+      if (errors.length > 0) {
+        setValidationErrors(errors.map((err) => err.message))
+      } else {
+        setValidationErrors([])
+      }
+    }
+  }, [items, user, getTotalPrice])
+
   const handlePlaceOrder = async () => {
+    // Prevent duplicate submissions
+    if (isProcessing || orderSubmissionAttempted.current || orderCompleted) {
+      console.log("Order submission blocked - already processing or completed")
+      return
+    }
+
     if (!user || items.length === 0) {
       setError("Unable to place order. Please ensure you're logged in and have items in your cart.")
+      toast({
+        variant: "destructive",
+        title: "Order Error",
+        description: "Please ensure you're logged in and have items in your cart.",
+      })
+      return
+    }
+
+    // Check for validation errors
+    if (validationErrors.length > 0) {
+      setError("Please fix the following issues before placing your order:")
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please check your cart items and try again.",
+      })
       return
     }
 
     setIsProcessing(true)
     setError("")
     isProcessingOrder.current = true
+    orderSubmissionAttempted.current = true
 
     try {
       console.log("Starting order creation process...")
 
-      const { order, error: orderError } = await createOrder({
+      const orderData = {
         user_id: user.id,
         items,
         total: getTotalPrice(),
-      })
+      }
+
+      const {
+        order,
+        error: orderError,
+        validationErrors: serverValidationErrors,
+        isNetworkError,
+      } = await createOrder(orderData)
+
+      if (serverValidationErrors && serverValidationErrors.length > 0) {
+        console.error("Server validation failed:", serverValidationErrors)
+        setError("Order validation failed. Please check your cart and try again.")
+        setValidationErrors(serverValidationErrors.map((err) => err.message))
+
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: "Please check your cart items and try again.",
+        })
+
+        orderSubmissionAttempted.current = false
+        isProcessingOrder.current = false
+        return
+      }
 
       if (orderError) {
         console.error("Order creation failed:", orderError)
-        setError("Failed to place order. Please try again.")
+        setError(orderError)
+
+        // Show appropriate toast based on error type
+        if (isNetworkError) {
+          toast({
+            variant: "destructive",
+            title: "Connection Error",
+            description: orderError,
+            action: (
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+            ),
+          })
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Order Failed",
+            description: orderError,
+          })
+        }
+
+        orderSubmissionAttempted.current = false
         isProcessingOrder.current = false
         return
       }
@@ -72,7 +162,14 @@ export default function CheckoutPage() {
         // Store the order ID in sessionStorage for confirmation page
         sessionStorage.setItem("recent-order-id", order.id)
 
-        // Clear the cart
+        // Show success toast
+        toast({
+          variant: "success",
+          title: "Order Placed Successfully!",
+          description: `Order #${order.id.slice(0, 8).toUpperCase()} has been confirmed.`,
+        })
+
+        // Clear the cart immediately after successful order
         clearCart()
 
         console.log("Redirecting to order confirmation page...")
@@ -80,11 +177,20 @@ export default function CheckoutPage() {
         // Small delay to ensure state updates are processed
         setTimeout(() => {
           router.push(`/order-confirmed?orderId=${order.id}`)
-        }, 100)
+        }, 500) // Slightly longer delay to show success message
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Unexpected error:", error)
-      setError("An unexpected error occurred. Please try again.")
+      const errorMessage = "An unexpected error occurred. Please try again."
+      setError(errorMessage)
+
+      toast({
+        variant: "destructive",
+        title: "Unexpected Error",
+        description: errorMessage,
+      })
+
+      orderSubmissionAttempted.current = false
       isProcessingOrder.current = false
     } finally {
       setIsProcessing(false)
@@ -113,6 +219,14 @@ export default function CheckoutPage() {
   const tax = subtotal * 0.08
   const total = subtotal + shipping + tax
 
+  // Check if order can be placed
+  const canPlaceOrder =
+    items.length > 0 &&
+    validationErrors.length === 0 &&
+    !isProcessing &&
+    !orderCompleted &&
+    !orderSubmissionAttempted.current
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
@@ -121,6 +235,24 @@ export default function CheckoutPage() {
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
 
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <Alert className="mb-6 border-yellow-200 bg-yellow-50">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                <div className="font-medium mb-2">Please fix the following issues:</div>
+                <ul className="list-disc list-inside space-y-1">
+                  {validationErrors.map((error, index) => (
+                    <li key={index} className="text-sm">
+                      {error}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* General Error */}
           {error && (
             <Alert className="mb-6 border-red-200 bg-red-50">
               <AlertCircle className="h-4 w-4 text-red-600" />
@@ -128,7 +260,7 @@ export default function CheckoutPage() {
             </Alert>
           )}
 
-          {/* Show processing state when order is being completed */}
+          {/* Success State */}
           {orderCompleted && (
             <Alert className="mb-6 border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
@@ -238,9 +370,9 @@ export default function CheckoutPage() {
                   </div>
 
                   <Button
-                    className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handlePlaceOrder}
-                    disabled={isProcessing || items.length === 0 || orderCompleted}
+                    disabled={!canPlaceOrder}
                   >
                     {isProcessing ? (
                       <>
@@ -251,6 +383,11 @@ export default function CheckoutPage() {
                       <>
                         <CheckCircle className="w-5 h-5 mr-2" />
                         Order Completed - Redirecting...
+                      </>
+                    ) : validationErrors.length > 0 ? (
+                      <>
+                        <AlertCircle className="w-5 h-5 mr-2" />
+                        Fix Issues to Continue
                       </>
                     ) : (
                       <>
