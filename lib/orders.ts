@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabaseClient"
+import { supabase } from "./supabase"
 
 export type Order = {
   id: string
