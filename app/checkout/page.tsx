@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
@@ -19,6 +19,8 @@ export default function CheckoutPage() {
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState("")
+  const [orderCompleted, setOrderCompleted] = useState(false)
+  const isProcessingOrder = useRef(false)
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -27,12 +29,13 @@ export default function CheckoutPage() {
     }
   }, [user, authLoading, router])
 
-  // Redirect if cart is empty
+  // Redirect if cart is empty (but not if we just completed an order)
   useEffect(() => {
-    if (!authLoading && items.length === 0) {
+    if (!authLoading && items.length === 0 && !orderCompleted && !isProcessingOrder.current) {
+      console.log("Redirecting to cart - no items and no order completed")
       router.push("/cart")
     }
-  }, [items, authLoading, router])
+  }, [items, authLoading, router, orderCompleted])
 
   const handlePlaceOrder = async () => {
     if (!user || items.length === 0) {
@@ -42,8 +45,11 @@ export default function CheckoutPage() {
 
     setIsProcessing(true)
     setError("")
+    isProcessingOrder.current = true
 
     try {
+      console.log("Starting order creation process...")
+
       const { order, error: orderError } = await createOrder({
         user_id: user.id,
         items,
@@ -53,22 +59,33 @@ export default function CheckoutPage() {
       if (orderError) {
         console.error("Order creation failed:", orderError)
         setError("Failed to place order. Please try again.")
+        isProcessingOrder.current = false
         return
       }
 
       if (order) {
-        // Clear the cart
-        clearCart()
+        console.log("Order created successfully:", order.id)
+
+        // Mark order as completed BEFORE clearing cart
+        setOrderCompleted(true)
 
         // Store the order ID in sessionStorage for confirmation page
         sessionStorage.setItem("recent-order-id", order.id)
 
-        // Redirect to confirmation page with order ID
-        router.push(`/order-confirmed?orderId=${order.id}`)
+        // Clear the cart
+        clearCart()
+
+        console.log("Redirecting to order confirmation page...")
+
+        // Small delay to ensure state updates are processed
+        setTimeout(() => {
+          router.push(`/order-confirmed?orderId=${order.id}`)
+        }, 100)
       }
     } catch (error) {
       console.error("Unexpected error:", error)
       setError("An unexpected error occurred. Please try again.")
+      isProcessingOrder.current = false
     } finally {
       setIsProcessing(false)
     }
@@ -86,8 +103,8 @@ export default function CheckoutPage() {
     )
   }
 
-  // Don't render if no user or empty cart
-  if (!user || items.length === 0) {
+  // Don't render if no user or (empty cart and no order completed)
+  if (!user || (items.length === 0 && !orderCompleted)) {
     return null
   }
 
@@ -108,6 +125,16 @@ export default function CheckoutPage() {
             <Alert className="mb-6 border-red-200 bg-red-50">
               <AlertCircle className="h-4 w-4 text-red-600" />
               <AlertDescription className="text-red-800">{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Show processing state when order is being completed */}
+          {orderCompleted && (
+            <Alert className="mb-6 border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Order completed successfully! Redirecting to confirmation page...
+              </AlertDescription>
             </Alert>
           )}
 
@@ -213,12 +240,17 @@ export default function CheckoutPage() {
                   <Button
                     className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
                     onClick={handlePlaceOrder}
-                    disabled={isProcessing || items.length === 0}
+                    disabled={isProcessing || items.length === 0 || orderCompleted}
                   >
                     {isProcessing ? (
                       <>
                         <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                         Processing Order...
+                      </>
+                    ) : orderCompleted ? (
+                      <>
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Order Completed - Redirecting...
                       </>
                     ) : (
                       <>
