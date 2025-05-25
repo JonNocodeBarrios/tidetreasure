@@ -326,7 +326,9 @@ html {
 
 /* Loading states */
 .loading-skeleton {
-  @apply bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100 bg-[length:200%_100%] animate-pulse;
+  @apply bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
 /* Mobile-first responsive breakpoints */
