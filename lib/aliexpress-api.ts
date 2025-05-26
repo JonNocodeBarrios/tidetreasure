@@ -1,6 +1,4 @@
-// lib/aliexpress-api.ts
-
-// Define the structure for AliExpress API product
+// Real AliExpress Data API integration using RapidAPI (by belchiorarkad)
 export interface AliExpressApiProduct {
   productId: string
   title: {
@@ -34,7 +32,17 @@ export interface AliExpressApiProduct {
   discount?: string
 }
 
-// Define the structure for Processed Product
+export interface AliExpressApiResponse {
+  success: boolean
+  data: {
+    content: AliExpressApiProduct[]
+    totalResults: number
+    page: number
+    pageSize: number
+  }
+  message?: string
+}
+
 export interface ProcessedProduct {
   id: string
   title: string
@@ -53,304 +61,129 @@ export interface ProcessedProduct {
   currency: string
 }
 
-// Rate limiting variables
-const REQUEST_COOLDOWN = 3000 // milliseconds
+// Rate limiting for API requests
 let lastRequestTime = 0
+const REQUEST_COOLDOWN = 2000 // 2 seconds between requests
 
-// Function to fix image URLs
+// Mock data for fallback when API is not available
+const mockProducts: ProcessedProduct[] = [
+  {
+    id: "mock_001",
+    title: "Ocean Wave Sterling Silver Bracelet",
+    category: "imported",
+    price: 45.99,
+    originalPrice: 59.99,
+    images: [
+      "/placeholder.svg?height=400&width=400&query=ocean+wave+sterling+silver+bracelet",
+      "/placeholder.svg?height=400&width=400&query=ocean+wave+bracelet+detail",
+    ],
+    description: "Beautiful ocean-inspired bracelet with wave patterns crafted from sterling silver",
+    supplier: "OceanJewelry Co.",
+    rating: 4.8,
+    reviews: 234,
+    stock: 150,
+    shippingTime: "7-15 days",
+    features: ["Sterling Silver", "Ocean Wave Design", "Adjustable Size", "Gift Box Included"],
+    currency: "USD",
+  },
+  {
+    id: "mock_002",
+    title: "Pearl Drop Earrings - Elegant Design",
+    category: "imported",
+    price: 32.5,
+    originalPrice: 42.0,
+    images: [
+      "/placeholder.svg?height=400&width=400&query=pearl+drop+earrings+elegant",
+      "/placeholder.svg?height=400&width=400&query=pearl+earrings+detail+luxury",
+    ],
+    description: "Elegant pearl earrings perfect for any occasion with premium freshwater pearls",
+    supplier: "PearlCraft Ltd.",
+    rating: 4.6,
+    reviews: 156,
+    stock: 89,
+    shippingTime: "5-12 days",
+    features: ["Freshwater Pearls", "Hypoallergenic", "Gift Packaging", "Certificate Included"],
+    currency: "USD",
+  },
+  {
+    id: "mock_003",
+    title: "Seashell Pendant Necklace - Gold Plated",
+    category: "imported",
+    price: 67.8,
+    originalPrice: 85.0,
+    images: [
+      "/placeholder.svg?height=400&width=400&query=seashell+pendant+necklace+gold",
+      "/placeholder.svg?height=400&width=400&query=seashell+necklace+detail+chain",
+    ],
+    description: "Delicate seashell pendant on a gold-plated chain, perfect for beach lovers",
+    supplier: "Coastal Designs",
+    rating: 4.9,
+    reviews: 89,
+    stock: 45,
+    shippingTime: "7-14 days",
+    features: ["Gold Plated", "Adjustable Chain", "Natural Seashell", "Waterproof"],
+    currency: "USD",
+  },
+]
+
+// Fix image URLs to ensure they have https protocol
 function fixImageUrl(url: string): string {
-  if (!url) return "/placeholder.svg?height=400&width=400&query=no+image"
-  if (url.startsWith("//")) return "https:" + url
+  if (!url) return "/placeholder.svg?height=400&width=400&query=jewelry+product"
+
+  // If URL starts with //, prepend https:
+  if (url.startsWith("//")) {
+    return `https:${url}`
+  }
+
+  // If URL doesn't start with http, prepend https://
+  if (!url.startsWith("http")) {
+    return `https://${url}`
+  }
+
   return url
 }
 
-// Function to transform AliExpressApiProduct to ProcessedProduct
-function transformApiProduct(product: AliExpressApiProduct): ProcessedProduct {
+// Transform API response to our internal format
+function transformApiProduct(apiProduct: AliExpressApiProduct): ProcessedProduct {
+  // Get title from the correct structure
+  const title = apiProduct.title?.displayTitle || "Untitled Product"
+
+  // Parse price from the correct structure
+  const price = apiProduct.prices?.salePrice?.minPrice || 0
+  const originalPrice = apiProduct.prices?.originalPrice?.minPrice
+
+  // Process image URL - prepend https: if it starts with //
+  const mainImage = fixImageUrl(apiProduct.image?.imgUrl)
+  const images = [mainImage].filter(Boolean)
+
+  // Ensure we have at least one image
+  if (images.length === 0) {
+    images.push("/placeholder.svg?height=400&width=400&query=jewelry+product")
+  }
+
   return {
-    id: product.productId,
-    title: product.title.displayTitle,
+    id: `ae_${apiProduct.productId}`,
+    title,
     category: "imported",
-    price: product.prices?.salePrice?.minPrice || 0,
-    originalPrice: product.prices?.originalPrice?.minPrice,
-    images: [product.image.imgUrl],
-    description: product.title.displayTitle,
-    supplier: product.store?.storeName || "AliExpress Seller",
-    rating: product.evaluation?.starRating || 4.5,
-    reviews: Math.floor(Math.random() * 500) + 50,
-    stock: Math.floor(Math.random() * 200) + 50,
-    shippingTime: product.shipping?.deliveryTime || "7-15 days",
+    price,
+    originalPrice,
+    images,
+    description: title,
+    supplier: apiProduct.store?.storeName || "AliExpress Seller",
+    rating: apiProduct.evaluation?.starRating || 4.5,
+    reviews: Math.floor(Math.random() * 500) + 50, // Random reviews since not provided
+    stock: Math.floor(Math.random() * 200) + 50, // Random stock since not provided
+    shippingTime: apiProduct.shipping?.deliveryTime || "7-15 days",
     features: [
       "Imported from AliExpress",
       "International Shipping",
-      product.discount ? `${product.discount} off` : "Special Price",
+      "USD",
+      apiProduct.discount ? `${apiProduct.discount} off` : "Special Price",
       "Global Shipping",
     ].filter(Boolean),
-    productUrl: product.productDetailUrl,
+    productUrl: apiProduct.productDetailUrl,
     currency: "USD",
   }
-}
-
-// Fetch products from AliExpress Data API
-export async function fetchAliExpressProducts(
-  searchTerm = "jewelry",
-  page = 1,
-  country = "US",
-  language = "en",
-): Promise<ProcessedProduct[]> {
-  // Rate limiting check
-  const now = Date.now()
-  if (now - lastRequestTime < REQUEST_COOLDOWN) {
-    const waitTime = REQUEST_COOLDOWN - (now - lastRequestTime)
-    console.log(`⏳ Rate limiting: waiting ${waitTime}ms`)
-    await new Promise((resolve) => setTimeout(resolve, waitTime))
-  }
-  lastRequestTime = Date.now()
-
-  const rapidApiKey = process.env.NEXT_PUBLIC_RAPIDAPI_KEY
-  const rapidApiHost = process.env.NEXT_PUBLIC_RAPIDAPI_HOST
-
-  // Fallback to mock data if API not configured
-  if (!rapidApiKey || !rapidApiHost) {
-    console.log("🔄 No API configuration found, using mock data")
-    return getMockProducts(searchTerm)
-  }
-
-  try {
-    console.log("🔍 Fetching AliExpress products:", { searchTerm, page, country, language })
-
-    const url = `https://${rapidApiHost}/product/search?query=${encodeURIComponent(searchTerm)}&page=${page}&country=${country}&language=${language}`
-    console.log("📡 Request URL:", url)
-
-    const headers = {
-      "X-RapidAPI-Key": rapidApiKey,
-      "X-RapidAPI-Host": rapidApiHost,
-      "Content-Type": "application/json",
-    }
-
-    console.log("📋 Request headers:", {
-      "X-RapidAPI-Key": rapidApiKey.substring(0, 8) + "...",
-      "X-RapidAPI-Host": rapidApiHost,
-    })
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers,
-    })
-
-    console.log("📊 Response status:", response.status)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("❌ API Error Response:", errorText)
-
-      // Parse error message if possible
-      let errorMessage = errorText
-      try {
-        const errorJson = JSON.parse(errorText)
-        errorMessage = errorJson.message || errorText
-      } catch {
-        // Keep original error text if not JSON
-      }
-
-      // Handle specific error cases with fallback to mock data
-      if (response.status === 429) {
-        console.log("🔄 Rate limit exceeded, falling back to mock data")
-        return getMockProducts(searchTerm)
-      }
-      if (response.status === 403 || errorMessage.includes("not subscribed")) {
-        console.log("🔄 API subscription required, falling back to mock data")
-        return getMockProducts(searchTerm)
-      }
-      if (response.status === 401) {
-        console.log("🔄 Invalid API key, falling back to mock data")
-        return getMockProducts(searchTerm)
-      }
-
-      // For other errors, also fall back to mock data
-      console.log("🔄 API error, falling back to mock data")
-      return getMockProducts(searchTerm)
-    }
-
-    const responseText = await response.text()
-    console.log("📄 Raw response:", responseText.substring(0, 500) + "...")
-
-    let json: any
-    try {
-      json = JSON.parse(responseText)
-    } catch (parseError) {
-      console.error("❌ JSON Parse Error:", parseError)
-      console.log("🔄 Invalid JSON response, falling back to mock data")
-      return getMockProducts(searchTerm)
-    }
-
-    console.log("📦 Parsed response structure:", {
-      hasData: !!json.data,
-      hasContent: !!json.data?.content,
-      productCount: json.data?.content?.length || 0,
-    })
-
-    // Extract products from data.content - this is the key fix for the API response structure
-    if (!json.data || !Array.isArray(json.data.content)) {
-      console.error("Invalid API response structure - missing data.content array:", json)
-      console.log("🔄 Invalid API response structure, falling back to mock data")
-      return getMockProducts(searchTerm)
-    }
-
-    const rawProducts = json.data.content
-    console.log(`✅ Fetched ${rawProducts.length} products from AliExpress Data API`)
-
-    // Normalize and validate each product to ensure all expected fields exist with safe fallbacks
-    const normalizedProducts = rawProducts.map((product: any, index: number) => {
-      try {
-        // Create a normalized AliExpressApiProduct with safe fallbacks
-        const normalizedApiProduct: AliExpressApiProduct = {
-          productId: product.productId || product.id || `unknown_${index}_${Date.now()}`,
-          title: {
-            displayTitle: product.title?.displayTitle || product.title || product.name || "Untitled Product",
-          },
-          prices: {
-            salePrice: {
-              minPrice: product.prices?.salePrice?.minPrice || product.price || product.salePrice || 0,
-              maxPrice:
-                product.prices?.salePrice?.maxPrice ||
-                product.prices?.salePrice?.minPrice ||
-                product.price ||
-                product.salePrice ||
-                0,
-            },
-            originalPrice: {
-              minPrice:
-                product.prices?.originalPrice?.minPrice ||
-                product.originalPrice ||
-                product.prices?.salePrice?.minPrice ||
-                product.price ||
-                0,
-              maxPrice:
-                product.prices?.originalPrice?.maxPrice ||
-                product.prices?.originalPrice?.minPrice ||
-                product.originalPrice ||
-                0,
-            },
-          },
-          image: {
-            imgUrl: fixImageUrl(product.image?.imgUrl || product.imageUrl || product.image || ""),
-          },
-          productDetailUrl: product.productDetailUrl || product.url || product.link,
-          store: {
-            storeName: product.store?.storeName || product.storeName || product.seller || "AliExpress Seller",
-            storeId: product.store?.storeId || product.storeId || `store_${product.productId || index}`,
-          },
-          evaluation: {
-            starRating: product.evaluation?.starRating || product.rating || product.stars || 4.5,
-          },
-          shipping: {
-            shippingFee: product.shipping?.shippingFee || product.shippingFee || "Free",
-            deliveryTime: product.shipping?.deliveryTime || product.deliveryTime || "7-15 days",
-          },
-          discount: product.discount || product.discountRate,
-        }
-
-        // Transform to ProcessedProduct format
-        return transformApiProduct(normalizedApiProduct)
-      } catch (error) {
-        console.warn(`⚠️ Error normalizing product at index ${index}:`, error)
-        // Return a safe fallback product
-        const fallbackApiProduct: AliExpressApiProduct = {
-          productId: `fallback_${index}_${Date.now()}`,
-          title: { displayTitle: "Product Unavailable" },
-          prices: {
-            salePrice: { minPrice: 0, maxPrice: 0 },
-            originalPrice: { minPrice: 0, maxPrice: 0 },
-          },
-          image: { imgUrl: "/placeholder.svg?height=400&width=400&query=jewelry+product" },
-          store: { storeName: "AliExpress Seller", storeId: "unknown" },
-          evaluation: { starRating: 4.5 },
-          shipping: { shippingFee: "Free", deliveryTime: "7-15 days" },
-        }
-        return transformApiProduct(fallbackApiProduct)
-      }
-    })
-
-    // Filter out products with invalid data (price = 0 or empty title)
-    const validProducts = normalizedProducts.filter(
-      (product) => product.title && product.title !== "Product Unavailable" && product.price > 0,
-    )
-
-    console.log(`✅ Processed ${validProducts.length} valid products out of ${normalizedProducts.length} total`)
-
-    return validProducts
-  } catch (error: any) {
-    console.error("❌ Error fetching AliExpress products:", error)
-    console.log("🔄 Network error, falling back to mock data")
-    return getMockProducts(searchTerm)
-  }
-}
-
-// Get mock products in API format with search filtering
-function getMockProducts(searchTerm: string): ProcessedProduct[] {
-  console.log("📦 Using mock API data for search term:", searchTerm)
-
-  const mockProducts: ProcessedProduct[] = [
-    {
-      id: "mock_001",
-      title: "Ocean Wave Sterling Silver Bracelet",
-      category: "imported",
-      price: 45.99,
-      originalPrice: 59.99,
-      images: ["/placeholder.svg?height=400&width=400&query=ocean+wave+sterling+silver+bracelet"],
-      description: "Beautiful ocean-inspired bracelet with wave patterns crafted from sterling silver",
-      supplier: "OceanJewelry Co.",
-      rating: 4.8,
-      reviews: 234,
-      stock: 150,
-      shippingTime: "7-15 days",
-      features: ["Sterling Silver", "Ocean Wave Design", "Adjustable Size", "Gift Box Included"],
-      currency: "USD",
-    },
-    {
-      id: "mock_002",
-      title: "Pearl Drop Earrings - Elegant Design",
-      category: "imported",
-      price: 32.5,
-      originalPrice: 42.0,
-      images: ["/placeholder.svg?height=400&width=400&query=pearl+drop+earrings+elegant"],
-      description: "Elegant pearl earrings perfect for any occasion with premium freshwater pearls",
-      supplier: "PearlCraft Ltd.",
-      rating: 4.6,
-      reviews: 156,
-      stock: 89,
-      shippingTime: "5-12 days",
-      features: ["Freshwater Pearls", "Hypoallergenic", "Gift Packaging", "Certificate Included"],
-      currency: "USD",
-    },
-    {
-      id: "mock_003",
-      title: "Seashell Pendant Necklace - Gold Plated",
-      category: "imported",
-      price: 67.8,
-      originalPrice: 85.0,
-      images: ["/placeholder.svg?height=400&width=400&query=seashell+pendant+necklace+gold"],
-      description: "Delicate seashell pendant on a gold-plated chain, perfect for beach lovers",
-      supplier: "Coastal Designs",
-      rating: 4.9,
-      reviews: 89,
-      stock: 45,
-      shippingTime: "7-14 days",
-      features: ["Gold Plated", "Adjustable Chain", "Natural Seashell", "Waterproof"],
-      currency: "USD",
-    },
-  ]
-
-  // Filter mock products based on search term
-  const filteredProducts = mockProducts.filter(
-    (product) =>
-      product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
-
-  // If no matches, return all products
-  return filteredProducts.length > 0 ? filteredProducts : mockProducts
 }
 
 // Check API configuration
@@ -473,6 +306,150 @@ export async function testApiConnection(): Promise<{
       details: error,
     }
   }
+}
+
+// Fetch products from AliExpress Data API
+export async function fetchAliExpressProducts(
+  searchTerm = "jewelry",
+  page = 1,
+  country = "US",
+  language = "en",
+): Promise<ProcessedProduct[]> {
+  // Rate limiting check
+  const now = Date.now()
+  if (now - lastRequestTime < REQUEST_COOLDOWN) {
+    const waitTime = REQUEST_COOLDOWN - (now - lastRequestTime)
+    console.log(`⏳ Rate limiting: waiting ${waitTime}ms`)
+    await new Promise((resolve) => setTimeout(resolve, waitTime))
+  }
+  lastRequestTime = Date.now()
+
+  const rapidApiKey = process.env.NEXT_PUBLIC_RAPIDAPI_KEY
+  const rapidApiHost = process.env.NEXT_PUBLIC_RAPIDAPI_HOST
+
+  // Fallback to mock data if API not configured
+  if (!rapidApiKey || !rapidApiHost) {
+    console.log("🔄 No API configuration found, using mock data")
+    return getMockProducts(searchTerm)
+  }
+
+  try {
+    console.log("🔍 Fetching AliExpress products:", { searchTerm, page, country, language })
+
+    const url = `https://${rapidApiHost}/product/search?query=${encodeURIComponent(searchTerm)}&page=${page}&country=${country}&language=${language}`
+    console.log("📡 Request URL:", url)
+
+    const headers = {
+      "X-RapidAPI-Key": rapidApiKey,
+      "X-RapidAPI-Host": rapidApiHost,
+      "Content-Type": "application/json",
+    }
+
+    console.log("📋 Request headers:", {
+      "X-RapidAPI-Key": rapidApiKey.substring(0, 8) + "...",
+      "X-RapidAPI-Host": rapidApiHost,
+    })
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers,
+    })
+
+    console.log("📊 Response status:", response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("❌ API Error Response:", errorText)
+
+      // Parse error message if possible
+      let errorMessage = errorText
+      try {
+        const errorJson = JSON.parse(errorText)
+        errorMessage = errorJson.message || errorText
+      } catch {
+        // Keep original error text if not JSON
+      }
+
+      // Handle specific error cases with fallback to mock data
+      if (response.status === 429) {
+        console.log("🔄 Rate limit exceeded, falling back to mock data")
+        return getMockProducts(searchTerm)
+      }
+      if (response.status === 403 || errorMessage.includes("not subscribed")) {
+        console.log("🔄 API subscription required, falling back to mock data")
+        return getMockProducts(searchTerm)
+      }
+      if (response.status === 401) {
+        console.log("🔄 Invalid API key, falling back to mock data")
+        return getMockProducts(searchTerm)
+      }
+
+      // For other errors, also fall back to mock data
+      console.log("🔄 API error, falling back to mock data")
+      return getMockProducts(searchTerm)
+    }
+
+    const responseText = await response.text()
+    console.log("📄 Raw response:", responseText.substring(0, 500) + "...")
+
+    let json: AliExpressApiResponse
+    try {
+      json = JSON.parse(responseText)
+    } catch (parseError) {
+      console.error("❌ JSON Parse Error:", parseError)
+      console.log("🔄 Invalid JSON response, falling back to mock data")
+      return getMockProducts(searchTerm)
+    }
+
+    console.log("📦 Parsed response structure:", {
+      success: json.success,
+      hasData: !!json.data,
+      hasContent: !!json.data?.content,
+      productCount: json.data?.content?.length || 0,
+      message: json.message,
+    })
+
+    if (!json.success || !json.data?.content) {
+      console.error("Invalid API response:", json)
+      console.log("🔄 Invalid API response structure, falling back to mock data")
+      return getMockProducts(searchTerm)
+    }
+
+    const products = json.data.content
+    console.log(`✅ Fetched ${products.length} products from AliExpress Data API`)
+
+    // Transform API products to our internal format using the correct mapping
+    const transformedProducts = products.map(transformApiProduct)
+
+    // Filter out products with invalid data
+    const validProducts = transformedProducts.filter(
+      (product) => product.title && product.price > 0 && product.images.length > 0,
+    )
+
+    console.log(`✅ Processed ${validProducts.length} valid products`)
+
+    return validProducts
+  } catch (error: any) {
+    console.error("❌ Error fetching AliExpress products:", error)
+    console.log("🔄 Network error, falling back to mock data")
+    return getMockProducts(searchTerm)
+  }
+}
+
+// Get mock products with search filtering
+function getMockProducts(searchTerm: string): ProcessedProduct[] {
+  console.log("📦 Using mock data for search term:", searchTerm)
+
+  // Filter mock products based on search term
+  const filteredProducts = mockProducts.filter(
+    (product) =>
+      product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  // If no matches, return all products
+  return filteredProducts.length > 0 ? filteredProducts : mockProducts
 }
 
 // Simulate importing a product (for logging purposes)
