@@ -36,17 +36,21 @@ export interface AliExpressApiProduct {
 
 // Define the structure for Processed Product
 export interface ProcessedProduct {
-  productId: string
+  id: string
   title: string
+  category: string
   price: number
-  imageUrl: string
-  productUrl: string
-  storeName: string
-  storeId: string
+  originalPrice?: number
+  images: string[]
+  description: string
+  supplier: string
   rating: number
-  shippingCost: string
-  deliveryTime: string
-  discount?: string
+  reviews: number
+  stock: number
+  shippingTime: string
+  features: string[]
+  productUrl?: string
+  currency: string
 }
 
 // Rate limiting variables
@@ -63,17 +67,26 @@ function fixImageUrl(url: string): string {
 // Function to transform AliExpressApiProduct to ProcessedProduct
 function transformApiProduct(product: AliExpressApiProduct): ProcessedProduct {
   return {
-    productId: product.productId,
+    id: product.productId,
     title: product.title.displayTitle,
+    category: "imported",
     price: product.prices?.salePrice?.minPrice || 0,
-    imageUrl: product.image.imgUrl,
-    productUrl: product.productDetailUrl || "#",
-    storeName: product.store?.storeName || "AliExpress Seller",
-    storeId: product.store?.storeId || "unknown",
+    originalPrice: product.prices?.originalPrice?.minPrice,
+    images: [product.image.imgUrl],
+    description: product.title.displayTitle,
+    supplier: product.store?.storeName || "AliExpress Seller",
     rating: product.evaluation?.starRating || 4.5,
-    shippingCost: product.shipping?.shippingFee || "Free",
-    deliveryTime: product.shipping?.deliveryTime || "7-15 days",
-    discount: product.discount,
+    reviews: Math.floor(Math.random() * 500) + 50,
+    stock: Math.floor(Math.random() * 200) + 50,
+    shippingTime: product.shipping?.deliveryTime || "7-15 days",
+    features: [
+      "Imported from AliExpress",
+      "International Shipping",
+      product.discount ? `${product.discount} off` : "Special Price",
+      "Global Shipping",
+    ].filter(Boolean),
+    productUrl: product.productDetailUrl,
+    currency: "USD",
   }
 }
 
@@ -277,62 +290,67 @@ export async function fetchAliExpressProducts(
 function getMockProducts(searchTerm: string): ProcessedProduct[] {
   console.log("📦 Using mock API data for search term:", searchTerm)
 
-  const mockApiProducts: AliExpressApiProduct[] = [
+  const mockProducts: ProcessedProduct[] = [
     {
-      productId: "mock_001",
-      title: { displayTitle: "Ocean Wave Sterling Silver Bracelet" },
-      prices: {
-        salePrice: { minPrice: 45.99, maxPrice: 45.99 },
-        originalPrice: { minPrice: 59.99, maxPrice: 59.99 },
-      },
-      image: { imgUrl: "/placeholder.svg?height=400&width=400&query=ocean+wave+sterling+silver+bracelet" },
-      productDetailUrl: "#",
-      store: { storeName: "OceanJewelry Co.", storeId: "ocean_jewelry" },
-      evaluation: { starRating: 4.8 },
-      shipping: { shippingFee: "Free", deliveryTime: "7-15 days" },
-      discount: "23% off",
+      id: "mock_001",
+      title: "Ocean Wave Sterling Silver Bracelet",
+      category: "imported",
+      price: 45.99,
+      originalPrice: 59.99,
+      images: ["/placeholder.svg?height=400&width=400&query=ocean+wave+sterling+silver+bracelet"],
+      description: "Beautiful ocean-inspired bracelet with wave patterns crafted from sterling silver",
+      supplier: "OceanJewelry Co.",
+      rating: 4.8,
+      reviews: 234,
+      stock: 150,
+      shippingTime: "7-15 days",
+      features: ["Sterling Silver", "Ocean Wave Design", "Adjustable Size", "Gift Box Included"],
+      currency: "USD",
     },
     {
-      productId: "mock_002",
-      title: { displayTitle: "Pearl Drop Earrings - Elegant Design" },
-      prices: {
-        salePrice: { minPrice: 32.5, maxPrice: 32.5 },
-        originalPrice: { minPrice: 42.0, maxPrice: 42.0 },
-      },
-      image: { imgUrl: "/placeholder.svg?height=400&width=400&query=pearl+drop+earrings+elegant" },
-      productDetailUrl: "#",
-      store: { storeName: "PearlCraft Ltd.", storeId: "pearl_craft" },
-      evaluation: { starRating: 4.6 },
-      shipping: { shippingFee: "Free", deliveryTime: "5-12 days" },
-      discount: "23% off",
+      id: "mock_002",
+      title: "Pearl Drop Earrings - Elegant Design",
+      category: "imported",
+      price: 32.5,
+      originalPrice: 42.0,
+      images: ["/placeholder.svg?height=400&width=400&query=pearl+drop+earrings+elegant"],
+      description: "Elegant pearl earrings perfect for any occasion with premium freshwater pearls",
+      supplier: "PearlCraft Ltd.",
+      rating: 4.6,
+      reviews: 156,
+      stock: 89,
+      shippingTime: "5-12 days",
+      features: ["Freshwater Pearls", "Hypoallergenic", "Gift Packaging", "Certificate Included"],
+      currency: "USD",
     },
     {
-      productId: "mock_003",
-      title: { displayTitle: "Seashell Pendant Necklace - Gold Plated" },
-      prices: {
-        salePrice: { minPrice: 67.8, maxPrice: 67.8 },
-        originalPrice: { minPrice: 85.0, maxPrice: 85.0 },
-      },
-      image: { imgUrl: "/placeholder.svg?height=400&width=400&query=seashell+pendant+necklace+gold" },
-      productDetailUrl: "#",
-      store: { storeName: "Coastal Designs", storeId: "coastal_designs" },
-      evaluation: { starRating: 4.9 },
-      shipping: { shippingFee: "Free", deliveryTime: "7-14 days" },
-      discount: "20% off",
+      id: "mock_003",
+      title: "Seashell Pendant Necklace - Gold Plated",
+      category: "imported",
+      price: 67.8,
+      originalPrice: 85.0,
+      images: ["/placeholder.svg?height=400&width=400&query=seashell+pendant+necklace+gold"],
+      description: "Delicate seashell pendant on a gold-plated chain, perfect for beach lovers",
+      supplier: "Coastal Designs",
+      rating: 4.9,
+      reviews: 89,
+      stock: 45,
+      shippingTime: "7-14 days",
+      features: ["Gold Plated", "Adjustable Chain", "Natural Seashell", "Waterproof"],
+      currency: "USD",
     },
   ]
 
-  const processedMockProducts: ProcessedProduct[] = mockApiProducts.map(transformApiProduct)
-
   // Filter mock products based on search term
-  const filteredProducts = processedMockProducts.filter(
+  const filteredProducts = mockProducts.filter(
     (product) =>
       product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.storeName.toLowerCase().includes(searchTerm.toLowerCase()),
+      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   // If no matches, return all products
-  return filteredProducts.length > 0 ? filteredProducts : processedMockProducts
+  return filteredProducts.length > 0 ? filteredProducts : mockProducts
 }
 
 // Check API configuration
@@ -461,12 +479,13 @@ export async function testApiConnection(): Promise<{
 export async function simulateImportProduct(product: ProcessedProduct): Promise<boolean> {
   await new Promise((resolve) => setTimeout(resolve, 500))
   console.log("🚀 Importing product:", {
-    productId: product.productId,
+    productId: product.id,
     title: product.title,
     price: product.price,
-    storeName: product.storeName,
+    supplier: product.supplier,
+    images: product.images.length,
     timestamp: new Date().toISOString(),
-    isMockData: product.productId.startsWith("mock_"),
+    isMockData: product.id.startsWith("mock_"),
   })
   return true
 }
