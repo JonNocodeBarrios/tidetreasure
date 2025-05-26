@@ -1,64 +1,72 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff } from "lucide-react"
-import { signIn } from "next-auth/react"
-import { useToast } from "@/components/ui/use-toast"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Eye, EyeOff, Waves } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { checkAdminAccess } from "@/lib/admin-auth"
 
-export default function Login() {
+export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const { signIn, user } = useAuth()
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get("callbackUrl") || "/"
-  const { toast } = useToast()
+
+  useEffect(() => {
+    if (user) {
+      // Check if user is admin and redirect accordingly
+      checkAdminAccess(user.id).then((isAdmin) => {
+        if (isAdmin) {
+          router.push("/admin")
+        } else {
+          router.push("/")
+        }
+      })
+    }
+  }, [user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError("")
 
     try {
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-        callbackUrl,
-      })
+      const { error } = await signIn(email, password)
 
-      if (res?.error) {
-        toast({
-          title: "Authentication Failed",
-          description: "Please check your credentials.",
-          variant: "destructive",
-        })
-        return
+      if (error) {
+        setError(error.message)
       }
-
-      router.push(callbackUrl)
-    } catch (error) {
-      toast({
-        title: "Something went wrong",
-        description: "Please try again later.",
-        variant: "destructive",
-      })
+    } catch (err) {
+      setError("An unexpected error occurred")
     } finally {
       setLoading(false)
     }
   }
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword)
+  }
+
   return (
-    <div className="h-screen flex items-center justify-center">
-      <Card className="w-[350px]">
-        <CardHeader>
-          <CardTitle>Login</CardTitle>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-center mb-4">
+            <Waves className="h-8 w-8 text-blue-600 mr-2" />
+            <span className="text-2xl font-bold text-gray-900">TideTreasures</span>
+          </div>
+          <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
+          <CardDescription className="text-center">Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -66,8 +74,8 @@ export default function Login() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                placeholder="Enter your email"
                 type="email"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -89,19 +97,26 @@ export default function Login() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors"
+                  onClick={togglePasswordVisibility}
                   disabled={loading}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
-            <Button disabled={loading} className="w-full">
-              {loading ? "Loading..." : "Sign In"}
+            {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
+          <div className="mt-6 text-center text-sm">
+            <span className="text-gray-600">{"Don't have an account? "}</span>
+            <Link href="/signup" className="text-blue-600 hover:underline">
+              Sign up
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
