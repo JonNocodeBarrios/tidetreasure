@@ -334,3 +334,139 @@ function getMockProducts(searchTerm: string): ProcessedProduct[] {
   // If no matches, return all products
   return filteredProducts.length > 0 ? filteredProducts : processedMockProducts
 }
+
+// Check API configuration
+export function checkApiConfiguration(): {
+  isConfigured: boolean
+  hasApiKey: boolean
+  message: string
+} {
+  const rapidApiKey = process.env.NEXT_PUBLIC_RAPIDAPI_KEY
+  const rapidApiHost = process.env.NEXT_PUBLIC_RAPIDAPI_HOST
+
+  if (!rapidApiKey) {
+    return {
+      isConfigured: false,
+      hasApiKey: false,
+      message: "RAPIDAPI_KEY environment variable is not set. Using mock data.",
+    }
+  }
+
+  if (!rapidApiHost) {
+    return {
+      isConfigured: false,
+      hasApiKey: true,
+      message: "RAPIDAPI_HOST environment variable is not set. Using mock data.",
+    }
+  }
+
+  if (rapidApiKey.length < 10) {
+    return {
+      isConfigured: false,
+      hasApiKey: true,
+      message: "RAPIDAPI_KEY appears to be invalid (too short). Using mock data.",
+    }
+  }
+
+  return {
+    isConfigured: true,
+    hasApiKey: true,
+    message: "API configuration looks good",
+  }
+}
+
+// Test API connection
+export async function testApiConnection(): Promise<{
+  success: boolean
+  message: string
+  details?: any
+  usingMockData?: boolean
+}> {
+  try {
+    const rapidApiKey = process.env.NEXT_PUBLIC_RAPIDAPI_KEY
+    const rapidApiHost = process.env.NEXT_PUBLIC_RAPIDAPI_HOST
+
+    if (!rapidApiKey || !rapidApiHost) {
+      return {
+        success: true,
+        usingMockData: true,
+        message: "API not configured. Mock data is available for testing.",
+      }
+    }
+
+    console.log("🧪 Testing AliExpress Data API connection...")
+
+    const testUrl = `https://${rapidApiHost}/product/search?query=test&page=1&country=US&language=en`
+
+    const response = await fetch(testUrl, {
+      method: "GET",
+      headers: {
+        "X-RapidAPI-Key": rapidApiKey,
+        "X-RapidAPI-Host": rapidApiHost,
+        "Content-Type": "application/json",
+      },
+    })
+
+    const responseText = await response.text()
+    console.log("📊 API Test Response:", response.status, responseText.substring(0, 200))
+
+    if (response.status === 403) {
+      let errorMessage = responseText
+      try {
+        const errorJson = JSON.parse(responseText)
+        errorMessage = errorJson.message || responseText
+      } catch {
+        // Keep original error text
+      }
+
+      if (errorMessage.includes("not subscribed") || errorMessage.includes("subscription")) {
+        return {
+          success: false,
+          usingMockData: true,
+          message: "API subscription required. Mock data is available for testing.",
+          details: {
+            status: response.status,
+            error: errorMessage,
+            solution: "Subscribe to the AliExpress Data API on RapidAPI to use real data",
+          },
+        }
+      }
+    }
+
+    return {
+      success: response.ok,
+      usingMockData: !response.ok,
+      message: response.ok
+        ? "API connection successful"
+        : `API connection failed (${response.status}). Mock data is available.`,
+      details: {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: responseText.substring(0, 200) + "...",
+      },
+    }
+  } catch (error: any) {
+    console.error("❌ API connection test failed:", error)
+    return {
+      success: false,
+      usingMockData: true,
+      message: `Connection test failed: ${error.message}. Mock data is available.`,
+      details: error,
+    }
+  }
+}
+
+// Simulate importing a product (for logging purposes)
+export async function simulateImportProduct(product: ProcessedProduct): Promise<boolean> {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  console.log("🚀 Importing product:", {
+    productId: product.productId,
+    title: product.title,
+    price: product.price,
+    storeName: product.storeName,
+    timestamp: new Date().toISOString(),
+    isMockData: product.productId.startsWith("mock_"),
+  })
+  return true
+}
