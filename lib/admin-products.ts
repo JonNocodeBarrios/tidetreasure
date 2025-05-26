@@ -1,5 +1,5 @@
 import { supabase } from "./supabase"
-import type { AliExpressProduct } from "./aliexpress-mock"
+import type { ProcessedProduct } from "./aliexpress-api"
 
 export interface AdminProduct {
   id: string
@@ -53,17 +53,41 @@ export async function toggleProductVisibility(productId: string, isPublished: bo
   return !error
 }
 
-// Import product from AliExpress
-export async function importProductFromAliExpress(aliExpressProduct: AliExpressProduct): Promise<boolean> {
+// Import product from AliExpress with better error handling and validation
+export async function importProductFromAliExpress(aliExpressProduct: ProcessedProduct): Promise<boolean> {
   try {
-    // First, get or create category
+    // Validate product data
+    if (!aliExpressProduct.title || aliExpressProduct.title.trim() === "") {
+      console.error("Product title is required")
+      return false
+    }
+
+    if (!aliExpressProduct.price || aliExpressProduct.price <= 0) {
+      console.error("Valid product price is required")
+      return false
+    }
+
+    if (!aliExpressProduct.images || aliExpressProduct.images.length === 0) {
+      console.error("At least one product image is required")
+      return false
+    }
+
+    // Check if product already exists (by title to avoid duplicates)
+    const { data: existingProduct } = await supabase
+      .from("products")
+      .select("id")
+      .eq("title", aliExpressProduct.title)
+      .single()
+
+    if (existingProduct) {
+      console.log("Product already exists:", aliExpressProduct.title)
+      return false // Don't overwrite existing products
+    }
+
+    // Get or create "imported" category
     let categoryId: string | null = null
 
-    const { data: existingCategory } = await supabase
-      .from("categories")
-      .select("id")
-      .eq("slug", aliExpressProduct.category)
-      .single()
+    const { data: existingCategory } = await supabase.from("categories").select("id").eq("slug", "imported").single()
 
     if (existingCategory) {
       categoryId = existingCategory.id
@@ -71,8 +95,8 @@ export async function importProductFromAliExpress(aliExpressProduct: AliExpressP
       const { data: newCategory } = await supabase
         .from("categories")
         .insert({
-          name: aliExpressProduct.category.charAt(0).toUpperCase() + aliExpressProduct.category.slice(1),
-          slug: aliExpressProduct.category,
+          name: "Imported",
+          slug: "imported",
         })
         .select("id")
         .single()
@@ -80,15 +104,22 @@ export async function importProductFromAliExpress(aliExpressProduct: AliExpressP
       categoryId = newCategory?.id || null
     }
 
-    // Insert product
+    // Clean and validate price
+    const cleanPrice = Number(aliExpressProduct.price)
+    if (isNaN(cleanPrice) || cleanPrice <= 0) {
+      console.error("Invalid price value:", aliExpressProduct.price)
+      return false
+    }
+
+    // Insert product with validation
     const { data: product, error: productError } = await supabase
       .from("products")
       .insert({
-        title: aliExpressProduct.title,
-        description: aliExpressProduct.description,
-        price: aliExpressProduct.price,
+        title: aliExpressProduct.title.trim(),
+        description: aliExpressProduct.description || aliExpressProduct.title,
+        price: cleanPrice,
         category_id: categoryId,
-        is_published: false, // Default to unpublished for review
+        is_published: false, // Always start as unpublished for review
       })
       .select("id")
       .single()
@@ -98,23 +129,41 @@ export async function importProductFromAliExpress(aliExpressProduct: AliExpressP
       return false
     }
 
-    // Insert product images
-    const imageInserts = aliExpressProduct.images.map((imageUrl) => ({
+    // Insert product images with validation
+    const validImages = aliExpressProduct.images
+      .filter((url) => url && url.trim() !== "" && !url.includes("placeholder"))
+      .slice(0, 5) // Limit to 5 images max
+
+    // If no valid images, use the first image even if it's a placeholder
+    if (validImages.length === 0 && aliExpressProduct.images.length > 0) {
+      validImages.push(aliExpressProduct.images[0])
+    }
+
+    if (validImages.length === 0) {
+      console.error("No valid images found for product")
+      // Delete the product since we couldn't add images
+      await supabase.from("products").delete().eq("id", product.id)
+      return false
+    }
+
+    const imageInserts = validImages.map((imageUrl) => ({
       product_id: product.id,
-      image_url: imageUrl,
+      image_url: imageUrl.trim(),
     }))
 
     const { error: imagesError } = await supabase.from("product_images").insert(imageInserts)
 
     if (imagesError) {
       console.error("Error inserting product images:", imagesError)
+      // Delete the product since we couldn't add images
+      await supabase.from("products").delete().eq("id", product.id)
       return false
     }
 
-    console.log(`Successfully imported product: ${aliExpressProduct.title}`)
+    console.log(`✅ Successfully imported product: ${aliExpressProduct.title}`)
     return true
   } catch (error) {
-    console.error("Error importing product:", error)
+    console.error("❌ Error importing product:", error)
     return false
   }
 }
