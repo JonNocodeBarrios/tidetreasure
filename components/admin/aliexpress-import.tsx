@@ -31,11 +31,12 @@ import {
   fetchAliExpressProducts,
   checkApiConfiguration,
   testApiConnection,
-  type ProcessedProduct,
-} from "@/lib/aliexpress-api"
+  simulateImportProduct,
+  type AliExpressProduct,
+} from "@/lib/aliexpress-mock"
 
 export function AliExpressImport() {
-  const [aliExpressProducts, setAliExpressProducts] = useState<ProcessedProduct[]>([])
+  const [aliExpressProducts, setAliExpressProducts] = useState<AliExpressProduct[]>([])
   const [importedProducts, setImportedProducts] = useState<AdminProduct[]>([])
   const [loadingAliExpress, setLoadingAliExpress] = useState(false)
   const [loadingImported, setLoadingImported] = useState(false)
@@ -134,10 +135,13 @@ export function AliExpressImport() {
     }
   }
 
-  const handleImportProduct = async (aliExpressProduct: ProcessedProduct) => {
+  const handleImportProduct = async (aliExpressProduct: AliExpressProduct) => {
     setImportingProducts((prev) => [...prev, aliExpressProduct.id])
 
     try {
+      // Simulate AliExpress import
+      await simulateImportProduct(aliExpressProduct)
+
       // Import to Supabase
       const success = await importProductFromAliExpress(aliExpressProduct)
 
