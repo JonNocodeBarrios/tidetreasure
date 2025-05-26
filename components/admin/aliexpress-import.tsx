@@ -17,8 +17,6 @@ import {
   Download,
   Eye,
   EyeOff,
-  Star,
-  Truck,
   Package,
   Trash2,
   RefreshCw,
@@ -27,18 +25,17 @@ import {
   CheckCircle,
   XCircle,
   Settings,
-  ExternalLink,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   fetchAliExpressProducts,
   checkApiConfiguration,
   testApiConnection,
-  type AliExpressProduct,
-} from "@/lib/aliexpress-mock"
+  type ProcessedProduct,
+} from "@/lib/aliexpress-api"
 
 export function AliExpressImport() {
-  const [aliExpressProducts, setAliExpressProducts] = useState<AliExpressProduct[]>([])
+  const [aliExpressProducts, setAliExpressProducts] = useState<ProcessedProduct[]>([])
   const [importedProducts, setImportedProducts] = useState<AdminProduct[]>([])
   const [loadingAliExpress, setLoadingAliExpress] = useState(false)
   const [loadingImported, setLoadingImported] = useState(false)
@@ -137,7 +134,7 @@ export function AliExpressImport() {
     }
   }
 
-  const handleImportProduct = async (aliExpressProduct: AliExpressProduct) => {
+  const handleImportProduct = async (aliExpressProduct: ProcessedProduct) => {
     setImportingProducts((prev) => [...prev, aliExpressProduct.id])
 
     try {
@@ -284,12 +281,21 @@ export function AliExpressImport() {
                   <p className="font-medium">Environment Variables Required:</p>
                   <div className="text-sm space-y-1">
                     <p>
-                      <code className="bg-yellow-200 px-1 rounded">NEXT_PUBLIC_RAPIDAPI_KEY</code> = Your RapidAPI key
+                      <code className="bg-yellow-200 px-1 rounded">NEXT_PUBLIC_RAPIDAPI_KEY</code> =
+                      fbf5e4b213msh52135fde27158b8p16a425jsn5b3222baca18
+                    </p>
+                    <p>
+                      <code className="bg-yellow-200 px-1 rounded">NEXT_PUBLIC_RAPIDAPI_HOST</code> =
+                      aliexpress-data.p.rapidapi.com
+                    </p>
+                    <p>
+                      <code className="bg-yellow-200 px-1 rounded">NEXT_PUBLIC_API_BASE_URL</code> =
+                      https://aliexpress-data.p.rapidapi.com
                     </p>
                   </div>
                   <p className="text-sm">
-                    Add this to your <code className="bg-yellow-200 px-1 rounded">.env.local</code> file and restart the
-                    application.
+                    Add these to your <code className="bg-yellow-200 px-1 rounded">.env.local</code> file and restart
+                    the application.
                   </p>
                 </div>
               </AlertDescription>
@@ -323,7 +329,7 @@ export function AliExpressImport() {
           )}
 
           <div className="mt-4 text-xs text-gray-500">
-            <p>API Endpoint: https://ali-express1.p.rapidapi.com/search</p>
+            <p>API Endpoint: https://aliexpress-data.p.rapidapi.com/product/search</p>
             <p>Rate limit: 1 request per 2 seconds</p>
           </div>
         </CardContent>
@@ -465,69 +471,111 @@ export function AliExpressImport() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading AliExpress products...</p>
                 </div>
+              ) : aliExpressProducts.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No products found. Try searching for something else.</p>
+                </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {aliExpressProducts.map((product) => (
-                    <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                      <div className="aspect-square overflow-hidden">
-                        <img
-                          src={product.images[0] || "/placeholder.svg"}
-                          alt={product.title}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="font-semibold text-gray-900 line-clamp-2 flex-1">{product.title}</h3>
-                          {product.id.startsWith("mock_") ? (
-                            <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200">
-                              Demo
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
-                              Live
-                            </Badge>
-                          )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {aliExpressProducts.map((product) => {
+                    // Handle API response structure gracefully
+                    const displayTitle = product.title?.displayTitle || product.title || "Untitled Product"
+                    const mainImage =
+                      product.image?.imgUrl ||
+                      product.images?.[0]?.imgUrl ||
+                      "/placeholder.svg?height=400&width=400&query=product"
+                    const additionalImages = product.images?.slice(1, 4) || [] // Show up to 3 additional images
+
+                    // Fix image URLs - prepend https: if missing
+                    const fixImageUrl = (url: string) => {
+                      if (!url) return "/placeholder.svg?height=400&width=400&query=product"
+                      if (url.startsWith("//")) return `https:${url}`
+                      if (url.startsWith("http")) return `https://${url}`
+                      return url
+                    }
+
+                    return (
+                      <Card
+                        key={product.productId || product.id}
+                        className="overflow-hidden hover:shadow-lg transition-shadow"
+                      >
+                        {/* Main Product Image */}
+                        <div className="aspect-square overflow-hidden bg-gray-100">
+                          <img
+                            src={fixImageUrl(mainImage) || "/placeholder.svg"}
+                            alt={displayTitle}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder.svg?height=400&width=400&query=product"
+                            }}
+                          />
                         </div>
 
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-lg font-bold text-cyan-600">${product.price}</span>
-                            {product.originalPrice && (
-                              <span className="text-sm text-gray-500 line-through">${product.originalPrice}</span>
+                        <CardContent className="p-4">
+                          {/* Product Title */}
+                          <h3 className="font-semibold text-gray-900 mb-3 line-clamp-3 text-sm leading-tight min-h-[3.6rem]">
+                            {displayTitle}
+                          </h3>
+
+                          {/* Product ID */}
+                          <p className="text-xs text-gray-500 mb-3">ID: {product.productId || product.id || "N/A"}</p>
+
+                          {/* Additional Images Thumbnail Strip */}
+                          {additionalImages.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-xs text-gray-600 mb-2 font-medium">Additional Images:</p>
+                              <div className="flex gap-2 overflow-x-auto pb-2">
+                                {additionalImages.map((img, index) => (
+                                  <div key={index} className="flex-shrink-0">
+                                    <img
+                                      src={fixImageUrl(img.imgUrl) || "/placeholder.svg"}
+                                      alt={`${displayTitle} - Image ${index + 2}`}
+                                      className="w-12 h-12 object-cover rounded border hover:border-cyan-400 transition-colors cursor-pointer"
+                                      onError={(e) => {
+                                        e.currentTarget.src = "/placeholder.svg?height=48&width=48&query=product"
+                                      }}
+                                      onClick={() => {
+                                        // Replace main image with clicked thumbnail
+                                        const mainImg = document.querySelector(
+                                          `[alt="${displayTitle}"]`,
+                                        ) as HTMLImageElement
+                                        if (mainImg) {
+                                          mainImg.src = fixImageUrl(img.imgUrl)
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Product Details */}
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">Type:</span>
+                              <Badge variant="outline" className="text-xs">
+                                {product.itemType || "Product"}
+                              </Badge>
+                            </div>
+                            {product.price && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-cyan-600">${product.price}</span>
+                                {product.originalPrice && (
+                                  <span className="text-sm text-gray-500 line-through">${product.originalPrice}</span>
+                                )}
+                              </div>
                             )}
                           </div>
-                          <Badge variant="outline" className="capitalize">
-                            {product.category}
-                          </Badge>
-                        </div>
 
-                        <div className="flex items-center space-x-4 mb-3 text-xs text-gray-500">
-                          <div className="flex items-center">
-                            <Star className="w-3 h-3 text-yellow-400 fill-current mr-1" />
-                            {product.rating} ({product.reviews})
-                          </div>
-                          <div className="flex items-center">
-                            <Package className="w-3 h-3 mr-1" />
-                            {product.stock} in stock
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between mb-4 text-xs text-gray-500">
-                          <span>Supplier: {product.supplier}</span>
-                          <div className="flex items-center">
-                            <Truck className="w-3 h-3 mr-1" />
-                            {product.shippingTime}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
+                          {/* Import Button */}
                           <Button
                             className="w-full"
                             onClick={() => handleImportProduct(product)}
-                            disabled={importingProducts.includes(product.id)}
+                            disabled={importingProducts.includes(product.productId || product.id)}
+                            size="sm"
                           >
-                            {importingProducts.includes(product.id) ? (
+                            {importingProducts.includes(product.productId || product.id) ? (
                               <>
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                                 Importing...
@@ -535,26 +583,14 @@ export function AliExpressImport() {
                             ) : (
                               <>
                                 <Download className="w-4 h-4 mr-2" />
-                                Import to Store
+                                Import Product
                               </>
                             )}
                           </Button>
-
-                          {product.productUrl && !product.id.startsWith("mock_") && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full"
-                              onClick={() => window.open(product.productUrl, "_blank")}
-                            >
-                              <ExternalLink className="w-3 h-3 mr-2" />
-                              View on AliExpress
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
