@@ -34,11 +34,11 @@ import {
   fetchAliExpressProducts,
   checkApiConfiguration,
   testApiConnection,
-  type ProcessedProduct,
-} from "@/lib/aliexpress-api"
+  type AliExpressProduct,
+} from "@/lib/aliexpress-mock"
 
 export function AliExpressImport() {
-  const [aliExpressProducts, setAliExpressProducts] = useState<ProcessedProduct[]>([])
+  const [aliExpressProducts, setAliExpressProducts] = useState<AliExpressProduct[]>([])
   const [importedProducts, setImportedProducts] = useState<AdminProduct[]>([])
   const [loadingAliExpress, setLoadingAliExpress] = useState(false)
   const [loadingImported, setLoadingImported] = useState(false)
@@ -137,7 +137,7 @@ export function AliExpressImport() {
     }
   }
 
-  const handleImportProduct = async (aliExpressProduct: ProcessedProduct) => {
+  const handleImportProduct = async (aliExpressProduct: AliExpressProduct) => {
     setImportingProducts((prev) => [...prev, aliExpressProduct.id])
 
     try {
@@ -284,21 +284,12 @@ export function AliExpressImport() {
                   <p className="font-medium">Environment Variables Required:</p>
                   <div className="text-sm space-y-1">
                     <p>
-                      <code className="bg-yellow-200 px-1 rounded">NEXT_PUBLIC_RAPIDAPI_KEY</code> =
-                      fbf5e4b213msh52135fde27158b8p16a425jsn5b3222baca18
-                    </p>
-                    <p>
-                      <code className="bg-yellow-200 px-1 rounded">NEXT_PUBLIC_RAPIDAPI_HOST</code> =
-                      aliexpress-data.p.rapidapi.com
-                    </p>
-                    <p>
-                      <code className="bg-yellow-200 px-1 rounded">NEXT_PUBLIC_API_BASE_URL</code> =
-                      https://aliexpress-data.p.rapidapi.com
+                      <code className="bg-yellow-200 px-1 rounded">NEXT_PUBLIC_RAPIDAPI_KEY</code> = Your RapidAPI key
                     </p>
                   </div>
                   <p className="text-sm">
-                    Add these to your <code className="bg-yellow-200 px-1 rounded">.env.local</code> file and restart
-                    the application.
+                    Add this to your <code className="bg-yellow-200 px-1 rounded">.env.local</code> file and restart the
+                    application.
                   </p>
                 </div>
               </AlertDescription>
@@ -332,7 +323,7 @@ export function AliExpressImport() {
           )}
 
           <div className="mt-4 text-xs text-gray-500">
-            <p>API Endpoint: https://aliexpress-data.p.rapidapi.com/product/search</p>
+            <p>API Endpoint: https://ali-express1.p.rapidapi.com/search</p>
             <p>Rate limit: 1 request per 2 seconds</p>
           </div>
         </CardContent>
@@ -506,7 +497,9 @@ export function AliExpressImport() {
                               <span className="text-sm text-gray-500 line-through">${product.originalPrice}</span>
                             )}
                           </div>
-                          <span className="text-xs text-gray-500">{product.currency}</span>
+                          <Badge variant="outline" className="capitalize">
+                            {product.category}
+                          </Badge>
                         </div>
 
                         <div className="flex items-center space-x-4 mb-3 text-xs text-gray-500">

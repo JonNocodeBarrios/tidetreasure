@@ -34,10 +34,14 @@ export interface AliExpressApiResponse {
           currency: string
         }
       }
-      images: Array<{
+      image: {
         imgUrl: string
-      }>
-      productUrl: string
+        imgWidth: number
+        imgHeight: number
+        imgType: string
+      }
+      itemType: string
+      productUrl?: string
       rating?: number
       reviews?: number
       shipping?: {
@@ -267,26 +271,18 @@ export const fetchAliExpressProducts = async (searchTerm = "women's jewelry"): P
 
     // Transform API response to our format
     const transformedProducts: AliExpressProduct[] = apiResponse.data.content.map((item, index) => {
-      // Extract and fix image URLs
-      const images =
-        item.images
-          ?.slice(0, 3) // Take up to 3 images
-          .map((img) => {
-            let url = img.imgUrl
-            // Prepend https: if missing
-            if (url.startsWith("//")) {
-              url = `https:${url}`
-            } else if (!url.startsWith("http")) {
-              url = `https://${url}`
-            }
-            return url
-          })
-          .filter((url) => url.length > 0) || []
+      // Extract and fix image URL from the new API structure
+      let imageUrl = item.image?.imgUrl || ""
+
+      // Prepend https: if missing
+      if (imageUrl.startsWith("//")) {
+        imageUrl = `https:${imageUrl}`
+      } else if (!imageUrl.startsWith("http") && imageUrl.length > 0) {
+        imageUrl = `https://${imageUrl}`
+      }
 
       // Ensure we have at least one image
-      if (images.length === 0) {
-        images.push("/placeholder.svg?height=400&width=400&query=jewelry+product")
-      }
+      const images = imageUrl ? [imageUrl] : ["/placeholder.svg?height=400&width=400&query=jewelry+product"]
 
       return {
         id: `ae_real_${Date.now()}_${index}`,
